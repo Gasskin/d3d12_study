@@ -55,7 +55,7 @@ HWND D3DApp::MainWnd() const
 int D3DApp::Run()
 {
 	MSG msg = { 0 };
-
+	mTimer.Reset();
 	//当接收到的消息不是退出是，维持循环
 	while (msg.message != WM_QUIT)
 	{
@@ -68,10 +68,12 @@ int D3DApp::Run()
 		//没消息则处理游戏
 		else
 		{
+			mTimer.Tick();
 			if (!mAppPaused)
 			{
-				Update();
-				Draw();
+				CalculateFrameStats();
+				Update(mTimer);
+				Draw(mTimer);
 			}
 			else
 			{
@@ -343,6 +345,32 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::CurrentBackBufferView() const
 D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::DepthStencilView() const
 {
 	return mDsvHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
+void D3DApp::CalculateFrameStats()
+{
+	static int frameCnt = 0;
+	static float timeElapsed = 0.0f;
+
+	frameCnt++;
+
+	if ((mTimer.TotalTime() - timeElapsed) >= 1.0f)
+	{
+		float fps = (float)frameCnt; // fps = frameCnt / 1
+		float mspf = 1000.0f / fps;
+
+		wstring fpsStr = to_wstring(fps);
+		wstring mspfStr = to_wstring(mspf);
+
+		wstring windowText = mMainWndCaption +
+			L"    fps: " + fpsStr +
+			L"   mspf: " + mspfStr;
+
+		SetWindowText(mhMainWnd, windowText.c_str());
+
+		frameCnt = 0;
+		timeElapsed += 1.0f;
+	}
 }
 
 void D3DApp::OnResize()

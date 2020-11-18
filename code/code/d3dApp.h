@@ -6,17 +6,12 @@
 #endif
 
 #include "d3dUtil.h"
+#include "GameTimer.h"
 
 #pragma comment(lib,"d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-/*
-	1.初始化入口为Initialize()->InitMainWindow()->InitDirect3D()
-
-	2.主要修改为
-	
-*/
 
 //主框架类
 class D3DApp
@@ -51,10 +46,12 @@ protected:
 	ID3D12Resource*				CurrentBackBuffer()const;//获取当前后台缓冲区
 	D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView()const;//当前后台缓冲区视图
 	D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView()const;//深度模板缓冲区视图
+
+	void						CalculateFrameStats();//计算帧率
 protected:
 	virtual void OnResize();//重新绘制窗口，比如改变窗口大小后要重新绘制
-	virtual void Update() = 0;//更新部分数据，如MVP矩阵
-	virtual void Draw() = 0;//绘制命令
+	virtual void Update(const GameTimer& gt) = 0;//更新部分数据，如MVP矩阵
+	virtual void Draw(const GameTimer& gt) = 0;//绘制命令
 protected:
 	//维持一个静态的D3DApp类
 	static				D3DApp* mApp;
@@ -70,6 +67,8 @@ protected:
 	std::wstring	mMainWndCaption = L"d3d App";//窗口的名字
 	int				mClientWidth = 800;//窗口的宽高
 	int				mClientHeight = 600;
+
+	GameTimer mTimer;//时间管理对象
 
 	Microsoft::WRL::ComPtr<IDXGIFactory4>				mdxgiFactory;//工厂、设备、交换链
 	Microsoft::WRL::ComPtr<ID3D12Device>				md3dDevice;

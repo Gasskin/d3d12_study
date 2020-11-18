@@ -11,8 +11,8 @@ public:
 	virtual bool Initialize()override;
 private:
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)override;
-	virtual void Update()override;
-	virtual void Draw()override;
+	virtual void Update(const GameTimer& gt)override;
+	virtual void Draw(const GameTimer& gt)override;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd)
@@ -64,11 +64,11 @@ LRESULT InitDirect3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-void InitDirect3DApp::Update()
+void InitDirect3DApp::Update(const GameTimer& gt)
 {
 }
 
-void InitDirect3DApp::Draw()
+void InitDirect3DApp::Draw(const GameTimer& gt)
 {
 	//ÖØÖÃÃüÁîÁĞ±íÓëÃüÁî·ÖÅäÆ÷
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
