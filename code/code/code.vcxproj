@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="d3dApp.h" />
     <ClInclude Include="d3dUtil.h" />
+    <ClInclude Include="d3dx12.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3dApp.cpp" />
