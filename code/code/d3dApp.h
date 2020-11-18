@@ -11,6 +11,12 @@
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "dxgi.lib")
 
+/*
+	1.初始化入口为Initialize()->InitMainWindow()->InitDirect3D()
+
+	2.主要修改为
+	
+*/
 
 //主框架类
 class D3DApp

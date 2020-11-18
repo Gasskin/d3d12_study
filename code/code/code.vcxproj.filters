@@ -27,6 +27,9 @@
     <ClInclude Include="d3dx12.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="GameTimer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3dUtil.cpp">
@@ -37,6 +40,9 @@
     </ClCompile>
     <ClCompile Include="InitDirect3DApp.cpp">
       <Filter>源文件\example</Filter>
+    </ClCompile>
+    <ClCompile Include="GameTimer.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
