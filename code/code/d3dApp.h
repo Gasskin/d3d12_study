@@ -33,6 +33,8 @@ public:
 	
 	//真正的窗口回调函数，我们将他设为virtual，这样继承于D3DApp的子类就能够定义自己的事件处理函数
 	virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+	float			AspectRatio()const;//返回窗口宽高比，用以计算投影矩阵
 protected:
 	bool						InitMainWindow();//初始化窗口	
 	bool						InitDirect3D();//初始化d3d
@@ -59,6 +61,9 @@ protected:
 	UINT				m4xMsaaQuality = 0;	//msaa的质量级别
 	static const int	SwapChainBufferCount = 2;//交换链中后台缓冲区的数量，一般就是2
 	bool				mAppPaused = false;//程序是否暂停
+	bool				mMinimized = false;//关于窗口的几个bool
+	bool				mMaximized = false;
+	bool				mResizing = false;
 
 	//HINSTANCE是APP句柄，HWND是窗口句柄，不同点在于，程序只能维持一个APP，而一个APP可以拥有多个窗口
 	//所以在程序运行之初，就会有一个且只有这一个HINSTANCE，而每创建一个窗口，都会有一个HWND

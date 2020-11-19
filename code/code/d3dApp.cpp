@@ -91,6 +91,11 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
+float D3DApp::AspectRatio()const
+{
+	return static_cast<float>(mClientWidth) / mClientHeight;
+}
+
 //辅助回调函数，其作用只是用来初始化窗口，而在此函数中，我们最终调用的还是D3DApp中MsgPro()这个回调函数
 //这样的话子类就可以实现虚函数，来定义自己的事件处理，而不需要修改框架代码
 LRESULT CALLBACK
