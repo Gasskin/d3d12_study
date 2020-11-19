@@ -18,9 +18,12 @@ struct ObjectConstants
 };
 
 //顶点
-struct Vertex
+struct VPosData
 {
 	XMFLOAT3 Pos;
+};
+struct VColorData
+{
 	XMFLOAT4 Color;
 };
 
@@ -163,9 +166,10 @@ void BoxApp::Draw(const GameTimer& gt)
 	//设置根签名
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	//默认
-	mCommandList->IASetVertexBuffers(0, 1, &mBoxGeo->VertexBufferView());
-
+	//设置顶点缓冲
+	mCommandList->IASetVertexBuffers(0, 1, &mBoxGeo->vPosBufferView());
+	mCommandList->IASetVertexBuffers(1, 1, &mBoxGeo->vColorBufferView());
+	//设置索引缓冲
 	mCommandList->IASetIndexBuffer(&mBoxGeo->IndexBufferView());
 	//设置图元拓扑
 	mCommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -460,66 +464,75 @@ void BoxApp::BuildShadersAndInputLayout()
 	mInputLayout =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 	};
 }
 
 void BoxApp::BuildBoxGeometry()
 {
-	//默认
-	std::array<Vertex, 8> vertices =
+	std::array<VPosData, 5> verticesPos =
 	{
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Black) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, -1.0f), XMFLOAT4(Colors::Red) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::Green) }),
-		Vertex({ XMFLOAT3(-1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Blue) }),
-		Vertex({ XMFLOAT3(-1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Yellow) }),
-		Vertex({ XMFLOAT3(+1.0f, +1.0f, +1.0f), XMFLOAT4(Colors::Cyan) }),
-		Vertex({ XMFLOAT3(+1.0f, -1.0f, +1.0f), XMFLOAT4(Colors::Magenta) })
+		VPosData({ XMFLOAT3(+0.0f, +1.0f, +0.0f) }),
+		VPosData({ XMFLOAT3(-1.0f, -1.0f, -1.0f) }),
+		VPosData({ XMFLOAT3(+1.0f, -1.0f, -1.0f) }),
+		VPosData({ XMFLOAT3(+1.0f, -1.0f, +1.0f) }),
+		VPosData({ XMFLOAT3(-1.0f, -1.0f, +1.0f) })
+	};
+	std::array<VColorData, 5> verticesColor =
+	{
+		VColorData({ XMFLOAT4(Colors::Red) }),
+		VColorData({ XMFLOAT4(Colors::Green) }),
+		VColorData({ XMFLOAT4(Colors::Green) }),
+		VColorData({ XMFLOAT4(Colors::Green) }),
+		VColorData({ XMFLOAT4(Colors::Green) })
 	};
 
 	std::array<std::uint16_t, 36> indices =
 	{
-		0, 1, 2,
-		0, 2, 3,
+		//前
+		0, 2, 1,
 
-		4, 6, 5,
-		4, 7, 6,
+		//后
+		0, 4, 3,
 
-		4, 5, 1,
-		4, 1, 0,
+		//左
+		0, 1, 4,
 
-		3, 2, 6,
-		3, 6, 7,
+		//右
+		0, 3, 2,
 
-		1, 5, 6,
-		1, 6, 2,
-
-		4, 0, 3,
-		4, 3, 7
+		//下
+		2, 4, 1,
+		2, 3, 4
 	};
 
-	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
+	const UINT vPosByteSize = (UINT)verticesPos.size() * sizeof(VPosData);
+	const UINT vColorByteSize = (UINT)verticesColor.size() * sizeof(VColorData);
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 	mBoxGeo = std::make_unique<MeshGeometry>();
 	mBoxGeo->Name = "boxGeo";
 
-	ThrowIfFailed(D3DCreateBlob(vbByteSize, &mBoxGeo->VertexBufferCPU));
+	//将数据复制到CPU，暂时不理解作用，注释掉也可以能运行
+	/*ThrowIfFailed(D3DCreateBlob(vbByteSize, &mBoxGeo->VertexBufferCPU));
 	CopyMemory(mBoxGeo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
 
 	ThrowIfFailed(D3DCreateBlob(ibByteSize, &mBoxGeo->IndexBufferCPU));
-	CopyMemory(mBoxGeo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
+	CopyMemory(mBoxGeo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);*/
 
-	mBoxGeo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), vertices.data(), vbByteSize, mBoxGeo->VertexBufferUploader);
+	mBoxGeo->vPosBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+		mCommandList.Get(), verticesPos.data(), vPosByteSize, mBoxGeo->vPosBufferUploader);
+	mBoxGeo->vColorBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+		mCommandList.Get(), verticesColor.data(), vColorByteSize, mBoxGeo->vColorBufferUploader);
 
 	mBoxGeo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
 		mCommandList.Get(), indices.data(), ibByteSize, mBoxGeo->IndexBufferUploader);
 
-	mBoxGeo->VertexByteStride = sizeof(Vertex);
-	mBoxGeo->VertexBufferByteSize = vbByteSize;
+	mBoxGeo->vPosByteStride = sizeof(VPosData);
+	mBoxGeo->vPosBufferByteSize = vPosByteSize;
+	mBoxGeo->vColorByteStride = sizeof(VColorData);
+	mBoxGeo->vColorBufferByteSize = vColorByteSize;
+
 	mBoxGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
 	mBoxGeo->IndexBufferByteSize = ibByteSize;
 

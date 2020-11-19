@@ -108,30 +108,42 @@ struct MeshGeometry
 	Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> IndexBufferCPU = nullptr;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferGPU = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> vPosBufferGPU = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> vColorBufferGPU = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
-
+	Microsoft::WRL::ComPtr<ID3D12Resource> vPosBufferUploader = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> vColorBufferUploader = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
 
-	UINT VertexByteStride = 0;//顶点缓冲区总大小
-	UINT VertexBufferByteSize = 0;//每一个顶点的大小
-
+	UINT vPosByteStride = 0;//顶点缓冲区总大小
+	UINT vPosBufferByteSize = 0;//每一个顶点的大小
+	UINT vColorByteStride = 0;//顶点缓冲区总大小
+	UINT vColorBufferByteSize = 0;//每一个顶点的大小
 
 	DXGI_FORMAT IndexFormat = DXGI_FORMAT_R16_UINT;
 	UINT IndexBufferByteSize = 0;
 
 	std::unordered_map<std::string, SubmeshGeometry> DrawArgs;
 
-	D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
+	D3D12_VERTEX_BUFFER_VIEW vPosBufferView()const
 	{
 		D3D12_VERTEX_BUFFER_VIEW vbv;
-		vbv.BufferLocation = VertexBufferGPU->GetGPUVirtualAddress();
-		vbv.StrideInBytes = VertexByteStride;
-		vbv.SizeInBytes = VertexBufferByteSize;
+		vbv.BufferLocation = vPosBufferGPU->GetGPUVirtualAddress();
+		vbv.StrideInBytes = vPosByteStride;
+		vbv.SizeInBytes = vPosBufferByteSize;
+
+		return vbv;
+	}
+
+	D3D12_VERTEX_BUFFER_VIEW vColorBufferView()const
+	{
+		D3D12_VERTEX_BUFFER_VIEW vbv;
+		vbv.BufferLocation = vColorBufferGPU->GetGPUVirtualAddress();
+		vbv.StrideInBytes = vColorByteStride;
+		vbv.SizeInBytes = vColorBufferByteSize;
 
 		return vbv;
 	}
@@ -148,7 +160,8 @@ struct MeshGeometry
 
 	void DisposeUploaders()
 	{
-		VertexBufferUploader = nullptr;
+		vPosBufferUploader = nullptr;
+		vColorBufferUploader = nullptr;
 		IndexBufferUploader = nullptr;
 	}
 };
