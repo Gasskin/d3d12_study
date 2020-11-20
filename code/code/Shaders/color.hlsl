@@ -1,12 +1,11 @@
-//***************************************************************************************
-// color.hlsl by Frank Luna (C) 2015 All Rights Reserved.
-//
-// Transforms and colors geometry.
-//***************************************************************************************
-
 cbuffer cbPerObject : register(b0)
 {
-	float4x4 gWorldViewProj; 
+	float4x4 gWorld; 
+};
+
+cbuffer cbPass : register(b1)
+{
+        float4x4 gViewProj;
 };
 
 struct VertexIn
@@ -24,13 +23,10 @@ struct VertexOut
 VertexOut VS(VertexIn vin)
 {
 	VertexOut vout;
-	
-	// Transform to homogeneous clip space.
-	vout.PosH = mul(float4(vin.PosL, 1.0f), gWorldViewProj);
-	
-	// Just pass vertex color into the pixel shader.
-    vout.Color = vin.Color;
-    
+    float3 PosW = mul(float4(vin.PosL, 1.0f), gWorld).xyz;
+    vout.PosH = mul(float4(PosW, 1.0f), gViewProj);
+	vout.Color = vin.Color;
+
     return vout;
 }
 

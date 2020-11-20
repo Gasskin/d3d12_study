@@ -1,4 +1,4 @@
-#include "d3dApp.h"
+ï»¿#include "d3dApp.h"
 #include "UploadBuffer.h"
 #include "MathHelper.h"
 #include <WindowsX.h>
@@ -8,16 +8,20 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 //====================================================
-//¶îÍâĞÅÏ¢
+//é¢å¤–ä¿¡æ¯
 //====================================================
 
-//´¢´æ³£Á¿ĞÅÏ¢£¬mvp¾ØÕó
+//ä¸¤ä¸ªå¸¸é‡ç»“æ„ä½“
 struct ObjectConstants
 {
-	XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
+	XMFLOAT4X4 world = MathHelper::Identity4x4();
+};
+struct PassConstants
+{
+	XMFLOAT4X4 viewProj = MathHelper::Identity4x4();
 };
 
-//¶¥µã
+//é¡¶ç‚¹
 struct Vertex
 {
 	XMFLOAT3 Pos;
@@ -25,7 +29,7 @@ struct Vertex
 };
 
 //====================================================
-//Ö÷Àà
+//ä¸»ç±»
 //====================================================
 class ShapesApp :public D3DApp
 {
@@ -43,38 +47,39 @@ private:
 	virtual void	Draw(const GameTimer& gt)override;
 	virtual void	OnResize()override;
 private:
-	void BuildDescriptorHeaps();//´´½¨ÃèÊö·û¶Ñ
-	void BuildConstantBuffers();//´´½¨³£Á¿»º³åÇøÓëÊÓÍ¼
-	void BuildRootSignature();//´´½¨¸ùÇ©Ãû
-	void BuildShadersAndInputLayout();//´´½¨¶¥µãÊäÈë²¼¾Ö
-	void BuildBoxGeometry();//¹¹½¨¼¸ºÎÌå£¨¶¥µãÓëË÷Òı£©
-	void BuildPSO();//´´½¨Á÷Ë®Ïß¶ÔÏó
+	void BuildDescriptorHeaps();//åˆ›å»ºæè¿°ç¬¦å †
+	void BuildConstantBuffers();//åˆ›å»ºå¸¸é‡ç¼“å†²åŒºä¸è§†å›¾
+	void BuildRootSignature();//åˆ›å»ºæ ¹ç­¾å
+	void BuildShadersAndInputLayout();//åˆ›å»ºé¡¶ç‚¹è¾“å…¥å¸ƒå±€
+	void BuildBoxGeometry();//æ„å»ºå‡ ä½•ä½“ï¼ˆé¡¶ç‚¹ä¸ç´¢å¼•ï¼‰
+	void BuildPSO();//åˆ›å»ºæµæ°´çº¿å¯¹è±¡
 private:
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);
 	void OnMouseMove(WPARAM btnState, int x, int y);
 private:
-	ComPtr<ID3D12DescriptorHeap>					mCbvHeap = nullptr;//³£Á¿»º³åÇø ÃèÊö·û¶Ñ
+	ComPtr<ID3D12DescriptorHeap>					mCbvHeap = nullptr;//å¸¸é‡ç¼“å†²åŒº æè¿°ç¬¦å †
 
-	std::unique_ptr<UploadBuffer<ObjectConstants>>	mObjectCB = nullptr;//³£Á¿»º³åÇø
+	std::unique_ptr<UploadBuffer<ObjectConstants>>	objCB = nullptr;//MçŸ©é˜µå¸¸é‡
+	std::unique_ptr<UploadBuffer<PassConstants>>	passCB = nullptr;//VPçŸ©é˜µå¸¸é‡
 
-	ComPtr<ID3D12RootSignature>						mRootSignature = nullptr;//¸ùÇ©Ãû
+	ComPtr<ID3D12RootSignature>						mRootSignature = nullptr;//æ ¹ç­¾å
 
-	ComPtr<ID3DBlob>								mvsByteCode = nullptr;//¶¥µã×ÅÉ«Æ÷
-	ComPtr<ID3DBlob>								mpsByteCode = nullptr;//ÏñËØ×ÅÉ«Æ÷
-	std::vector<D3D12_INPUT_ELEMENT_DESC>			mInputLayout;//ÊäÈë²¼¾Ö
+	ComPtr<ID3DBlob>								mvsByteCode = nullptr;//é¡¶ç‚¹ç€è‰²å™¨
+	ComPtr<ID3DBlob>								mpsByteCode = nullptr;//åƒç´ ç€è‰²å™¨
+	std::vector<D3D12_INPUT_ELEMENT_DESC>			mInputLayout;//è¾“å…¥å¸ƒå±€
 
-	std::unique_ptr<MeshGeometry>					mBoxGeo = nullptr;//ºĞ×ÓµÄ¶¥µãÓëË÷Òı»º³å
+	std::unique_ptr<MeshGeometry>					mBoxGeo = nullptr;//ç›’å­çš„é¡¶ç‚¹ä¸ç´¢å¼•ç¼“å†²
 
-	ComPtr<ID3D12PipelineState>						mPSO = nullptr;//Á÷Ë®Ïß¶ÔÏó
+	ComPtr<ID3D12PipelineState>						mPSO = nullptr;//æµæ°´çº¿å¯¹è±¡
 private:
-	XMFLOAT4X4	mWorld = MathHelper::Identity4x4();//ÊÀ½ç¾ØÕó
-	XMFLOAT4X4	mView = MathHelper::Identity4x4();//¹Û²ì¾ØÕó
-	XMFLOAT4X4	mProj = MathHelper::Identity4x4();//Í¶Ó°¾ØÕó
+	XMFLOAT4X4	mWorld = MathHelper::Identity4x4();//ä¸–ç•ŒçŸ©é˜µ
+	XMFLOAT4X4	mView = MathHelper::Identity4x4();//è§‚å¯ŸçŸ©é˜µ
+	XMFLOAT4X4	mProj = MathHelper::Identity4x4();//æŠ•å½±çŸ©é˜µ
 
 	float		mTheta = 1.5f * XM_PI; //1.5pai
-	float		mPhi = XM_PIDIV4;//ËÄ·ÖÖ®pai
-	float		mRadius = 5.0f;//»¡¶È
+	float		mPhi = XM_PIDIV4;//å››åˆ†ä¹‹pai
+	float		mRadius = 5.0f;//å¼§åº¦
 private:
 	POINT	mLastMousePos;
 };
@@ -88,28 +93,28 @@ ShapesApp::~ShapesApp()
 {
 }
 
-//Èë¿Ú
+//å…¥å£
 bool ShapesApp::Initialize()
 {
 	if (!D3DApp::Initialize())
 		return false;
 
-	//ÖØÖÃÃüÁîÁĞ±íÓëÃüÁî·ÖÅäÆ÷
+	//é‡ç½®å‘½ä»¤åˆ—è¡¨ä¸å‘½ä»¤åˆ†é…å™¨
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-	//³õÊ¼»¯
+	//åˆå§‹åŒ–
 	BuildDescriptorHeaps();
 	BuildConstantBuffers();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
 	BuildBoxGeometry();
 	BuildPSO();
-	//¹Ø±ÕÃüÁîÁĞ±í
+	//å…³é—­å‘½ä»¤åˆ—è¡¨
 	ThrowIfFailed(mCommandList->Close());
-	//Ö´ĞĞÃüÁî
+	//æ‰§è¡Œå‘½ä»¤
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	//Î§À¸
+	//å›´æ 
 	FlushCommandQueue();
 
 	return true;
@@ -128,13 +133,22 @@ void ShapesApp::Update(const GameTimer& gt)
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&mView, view);
 
+	//mçŸ©é˜µ
 	XMMATRIX world = XMLoadFloat4x4(&mWorld);
+	world *= XMMatrixTranslation(2.0f, 0.0f, 0.0f);//æ„å»ºä¸–ç•ŒçŸ©é˜µï¼Œxå¹³ç§»ä¸¤ä¸ªå•ä½
+
+	//vpçŸ©é˜µ
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
-	XMMATRIX worldViewProj = world * view * proj;
+	XMMATRIX vp = view * proj;
 
 	ObjectConstants objConstants;
-	XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
-	mObjectCB->CopyData(0, objConstants);
+	PassConstants passConstants;
+	//æ‹·è´æ•°æ®
+	XMStoreFloat4x4(&passConstants.viewProj, XMMatrixTranspose(vp));
+	passCB->CopyData(0, passConstants);
+
+	XMStoreFloat4x4(&objConstants.world, XMMatrixTranspose(world));
+	objCB->CopyData(0, objConstants);
 }
 
 void ShapesApp::Draw(const GameTimer& gt)
@@ -157,20 +171,32 @@ void ShapesApp::Draw(const GameTimer& gt)
 
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
-	//ÉèÖÃCBVÃèÊö·û¶Ñ
+	//è®¾ç½®CBVæè¿°ç¬¦å †
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	//ÉèÖÃ¸ùÇ©Ãû
+	//è®¾ç½®æ ¹ç­¾å
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	//Ä¬ÈÏ
 	mCommandList->IASetVertexBuffers(0, 1, &mBoxGeo->VertexBufferView());
 
 	mCommandList->IASetIndexBuffer(&mBoxGeo->IndexBufferView());
-	//ÉèÖÃÍ¼ÔªÍØÆË
+	//è®¾ç½®å›¾å…ƒæ‹“æ‰‘
 	mCommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	//ÉèÖÃ¸ùÃèÊö·û±í
-	mCommandList->SetGraphicsRootDescriptorTable(0, mCbvHeap->GetGPUDescriptorHandleForHeapStart());
+
+	//è®¾ç½®æ ¹æè¿°ç¬¦è¡¨
+	int objCbvIndex = 0;
+	auto handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
+	handle.Offset(objCbvIndex, mCbvSrvUavDescriptorSize);
+	mCommandList->SetGraphicsRootDescriptorTable(
+		0, //æ ¹å‚æ•°çš„èµ·å§‹ç´¢å¼•
+		handle);
+
+	int passCbvIndex = 1;
+	handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
+	handle.Offset(passCbvIndex, mCbvSrvUavDescriptorSize);
+	mCommandList->SetGraphicsRootDescriptorTable(
+		1, //æ ¹å‚æ•°çš„èµ·å§‹ç´¢å¼•
+		handle);
 
 	mCommandList->DrawIndexedInstanced(
 		mBoxGeo->DrawArgs["box"].IndexCount,
@@ -214,30 +240,30 @@ void ShapesApp::OnMouseUp(WPARAM btnState, int x, int y)
 
 void ShapesApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
-	//Èç¹ûÔÚ×ó¼ü°´ÏÂ×´Ì¬
+	//å¦‚æœåœ¨å·¦é”®æŒ‰ä¸‹çŠ¶æ€
 	if ((btnState & MK_LBUTTON) != 0)
 	{
-		//½«Êó±êµÄÒÆ¶¯¾àÀë»»Ëã³É»¡¶È£¬0.25Îªµ÷½ÚãĞÖµ
+		//å°†é¼ æ ‡çš„ç§»åŠ¨è·ç¦»æ¢ç®—æˆå¼§åº¦ï¼Œ0.25ä¸ºè°ƒèŠ‚é˜ˆå€¼
 		float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
 		float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
-		//¼ÆËãÊó±êÃ»ÓĞËÉ¿ªÇ°µÄÀÛ¼Æ»¡¶È
+		//è®¡ç®—é¼ æ ‡æ²¡æœ‰æ¾å¼€å‰çš„ç´¯è®¡å¼§åº¦
 		mTheta += dx;
 		mPhi += dy;
-		//ÏŞÖÆ½Ç¶ÈphiµÄ·¶Î§ÔÚ£¨0.1£¬ Pi-0.1£©
+		//é™åˆ¶è§’åº¦phiçš„èŒƒå›´åœ¨ï¼ˆ0.1ï¼Œ Pi-0.1ï¼‰
 		mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
 	}
-	//Èç¹ûÔÚÓÒ¼ü°´ÏÂ×´Ì¬
+	//å¦‚æœåœ¨å³é”®æŒ‰ä¸‹çŠ¶æ€
 	else if ((btnState & MK_RBUTTON) != 0)
 	{
-		//½«Êó±êµÄÒÆ¶¯¾àÀë»»Ëã³ÉËõ·Å´óĞ¡£¬0.005Îªµ÷½ÚãĞÖµ
+		//å°†é¼ æ ‡çš„ç§»åŠ¨è·ç¦»æ¢ç®—æˆç¼©æ”¾å¤§å°ï¼Œ0.005ä¸ºè°ƒèŠ‚é˜ˆå€¼
 		float dx = 0.005f * static_cast<float>(x - mLastMousePos.x);
 		float dy = 0.005f * static_cast<float>(y - mLastMousePos.y);
-		//¸ù¾İÊó±êÊäÈë¸üĞÂÉãÏñ»ú¿ÉÊÓ·¶Î§°ë¾¶
+		//æ ¹æ®é¼ æ ‡è¾“å…¥æ›´æ–°æ‘„åƒæœºå¯è§†èŒƒå›´åŠå¾„
 		mRadius += dx - dy;
-		//ÏŞÖÆ¿ÉÊÓ·¶Î§°ë¾¶
+		//é™åˆ¶å¯è§†èŒƒå›´åŠå¾„
 		mRadius = MathHelper::Clamp(mRadius, 3.0f, 15.0f);
 	}
-	//½«µ±Ç°Êó±ê×ø±ê¸³Öµ¸ø¡°ÉÏÒ»´ÎÊó±ê×ø±ê¡±£¬ÎªÏÂÒ»´ÎÊó±ê²Ù×÷Ìá¹©ÏÈÇ°Öµ
+	//å°†å½“å‰é¼ æ ‡åæ ‡èµ‹å€¼ç»™â€œä¸Šä¸€æ¬¡é¼ æ ‡åæ ‡â€ï¼Œä¸ºä¸‹ä¸€æ¬¡é¼ æ ‡æ“ä½œæä¾›å…ˆå‰å€¼
 	mLastMousePos.x = x;
 	mLastMousePos.y = y;
 }
@@ -249,19 +275,19 @@ LRESULT ShapesApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE)
 		{
-			OutputDebugString(L"È¡Ïû¼¤»î´°¿Ú\n");
+			OutputDebugString(L"å–æ¶ˆæ¿€æ´»çª—å£\n");
 			mAppPaused = true;
 			mTimer.Stop();
 		}
 		else
 		{
-			OutputDebugString(L"¼¤»î´°¿Ú\n");
+			OutputDebugString(L"æ¿€æ´»çª—å£\n");
 			mAppPaused = false;
 			mTimer.Start();
 		}
 		return 0;
 	case WM_SIZE:
-		OutputDebugString(L"¸Ä±ä´°¿Ú´óĞ¡ ");
+		OutputDebugString(L"æ”¹å˜çª—å£å¤§å° ");
 		mClientWidth = LOWORD(lParam);
 		mClientHeight = HIWORD(lParam);
 		if (md3dDevice)
@@ -296,10 +322,10 @@ LRESULT ShapesApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				else if (mResizing)
 				{
 					/*
-						ÎÒÃÇ¿ÉÒÔÒ»Ö±µ÷Õû´°¿Ú´óĞ¡£¬µ«Èç¹ûÍ¬Ê±Ò²Ò»Ö±ÖØĞÂ»æÖÆ£¬ÄÇÊÇºÜÃ»±ØÒªµÄ£¬ÎÒÃÇÖ»»áÔÚµ÷ÕûÍêÖ®ºó£¬½øĞĞÒ»´ÎÖØĞÂ»æÖÆ
-						ÏÂÃæ»¹ÓĞÁ½¸öcase£¬Ò»¸öÊÇµ±ÎÒÃÇ¿ªÊ¼µ÷Õû´°¿Ú´óĞ¡Ê±£¬ÁíÒ»¸öÊÇµ±ÎÒÃÇ½áÊøµ÷Õû´°¿Ú´óĞ¡Ê±
-						ËùÒÔµ±ÎÒÃÇ¿ªÊ¼µ÷Õû´°¿Ú´óĞ¡Ê±£¬ÉèÖÃmResizingÎªtrue£¬ÕâÑù£¬ÔÙWM_SIZEÕâ¸öÏûÏ¢ÖĞ£¬¾Í»áÒ»Ö±½øÈëÏÖÔÚÕâ¸ö¿Õ·ÖÖ§£¬É¶Ò²²»»á¸É
-						µÈ»æÖÆ½áÊøÊ±£¬ÎÒÃÇÔÙÉèÖÃmResizingÎªfalse£¬½øĞĞÒ»´ÎOnResize()
+						æˆ‘ä»¬å¯ä»¥ä¸€ç›´è°ƒæ•´çª—å£å¤§å°ï¼Œä½†å¦‚æœåŒæ—¶ä¹Ÿä¸€ç›´é‡æ–°ç»˜åˆ¶ï¼Œé‚£æ˜¯å¾ˆæ²¡å¿…è¦çš„ï¼Œæˆ‘ä»¬åªä¼šåœ¨è°ƒæ•´å®Œä¹‹åï¼Œè¿›è¡Œä¸€æ¬¡é‡æ–°ç»˜åˆ¶
+						ä¸‹é¢è¿˜æœ‰ä¸¤ä¸ªcaseï¼Œä¸€ä¸ªæ˜¯å½“æˆ‘ä»¬å¼€å§‹è°ƒæ•´çª—å£å¤§å°æ—¶ï¼Œå¦ä¸€ä¸ªæ˜¯å½“æˆ‘ä»¬ç»“æŸè°ƒæ•´çª—å£å¤§å°æ—¶
+						æ‰€ä»¥å½“æˆ‘ä»¬å¼€å§‹è°ƒæ•´çª—å£å¤§å°æ—¶ï¼Œè®¾ç½®mResizingä¸ºtrueï¼Œè¿™æ ·ï¼Œå†WM_SIZEè¿™ä¸ªæ¶ˆæ¯ä¸­ï¼Œå°±ä¼šä¸€ç›´è¿›å…¥ç°åœ¨è¿™ä¸ªç©ºåˆ†æ”¯ï¼Œå•¥ä¹Ÿä¸ä¼šå¹²
+						ç­‰ç»˜åˆ¶ç»“æŸæ—¶ï¼Œæˆ‘ä»¬å†è®¾ç½®mResizingä¸ºfalseï¼Œè¿›è¡Œä¸€æ¬¡OnResize()
 					*/
 				}
 				else
@@ -373,20 +399,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 }
 
 /*
-	»º³åÇøÏëÒª°ó¶¨µ½Á÷Ë®Ïß£¬ĞèÒª½èÖú»º³åÇøÊÓÍ¼£¬¶ø²¿·ÖÊÓÍ¼£¬ĞèÒª´¢´æÔÚÃèÊö·û¶ÑÖĞ£¬Èç³£Á¿»º³åÊÓÍ¼£¬DSV,RTVµÈ
-	µ±È»Ò²ÓĞÒ»²¿·ÖÊÓÍ¼ÊÇ²»ĞèÒªÃèÊö·û¶ÑµÄ£¬Èç¶¥µã»º³åÊÓÍ¼£¬Ë÷Òı»º³åÊÓÍ¼
-	ÕâÀïÎÒÃÇ´´½¨µÄÃèÊö·û¶Ñ£¬Ö÷ÒªÊÇÓÃÓÚ´¢´æ³£Á¿»º³åÇøÊÓÍ¼µÄ
+	ç¼“å†²åŒºæƒ³è¦ç»‘å®šåˆ°æµæ°´çº¿ï¼Œéœ€è¦å€ŸåŠ©ç¼“å†²åŒºè§†å›¾ï¼Œè€Œéƒ¨åˆ†è§†å›¾ï¼Œéœ€è¦å‚¨å­˜åœ¨æè¿°ç¬¦å †ä¸­ï¼Œå¦‚å¸¸é‡ç¼“å†²è§†å›¾ï¼ŒDSV,RTVç­‰
+	å½“ç„¶ä¹Ÿæœ‰ä¸€éƒ¨åˆ†è§†å›¾æ˜¯ä¸éœ€è¦æè¿°ç¬¦å †çš„ï¼Œå¦‚é¡¶ç‚¹ç¼“å†²è§†å›¾ï¼Œç´¢å¼•ç¼“å†²è§†å›¾
+	è¿™é‡Œæˆ‘ä»¬åˆ›å»ºçš„æè¿°ç¬¦å †ï¼Œä¸»è¦æ˜¯ç”¨äºå‚¨å­˜å¸¸é‡ç¼“å†²åŒºè§†å›¾çš„
 */
 void ShapesApp::BuildDescriptorHeaps()
 {
-	//ÃèÊö ÃèÊö·û¶Ñ
+	//æè¿° æè¿°ç¬¦å †
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
-	cbvHeapDesc.NumDescriptors = 1;
+	cbvHeapDesc.NumDescriptors = 2;//ç°åœ¨æœ‰ä¸¤ä¸ªå¸¸é‡ç¼“å†²åŒºï¼Œæ‰€ä»¥è¦ä¸¤ä¸ªå¸¸é‡å †
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
 
-	//´´½¨ÃèÊö·û¶Ñ
+	//åˆ›å»ºæè¿°ç¬¦å †
 	ThrowIfFailed(
 		md3dDevice->CreateDescriptorHeap(
 			&cbvHeapDesc,
@@ -396,34 +422,69 @@ void ShapesApp::BuildDescriptorHeaps()
 
 void ShapesApp::BuildConstantBuffers()
 {
-	//´´½¨³£Á¿»º³åÇø£¬ÔÚUploadBufferÀàÖĞ¶¨ÒåÁË´´½¨¶ÑµÄ¹ı³Ì
-	mObjectCB = std::make_unique<UploadBuffer<ObjectConstants>>(md3dDevice.Get(), 1, true);
+	//åˆ›å»ºMçŸ©é˜µå¸¸é‡ç¼“å†²åŒº
+	objCB = std::make_unique<UploadBuffer<ObjectConstants>>(md3dDevice.Get(), 1, true);
 
 	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
-	D3D12_GPU_VIRTUAL_ADDRESS cbAddress = mObjectCB->Resource()->GetGPUVirtualAddress();
+	D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objCB->Resource()->GetGPUVirtualAddress();
 
-	int boxCBufIndex = 0;
-	cbAddress += boxCBufIndex * objCBByteSize;
-	//ÕâÀï´´½¨µÄÊÇCBV
+	int objCBBufIndex = 0;//è¿™é‡Œæ˜¯ç”¨äºåç§»å­ç‰©ä½“çš„ï¼Œæ¯”å¦‚æœ‰3ä¸ªç‰©ä½“çš„MçŸ©é˜µéƒ½å‚¨å­˜åœ¨äº†è¿™ä¸€ä¸ªå¸¸é‡ç¼“å†²åŒºï¼Œé‚£å°±è¦å¯¹è§†å›¾ä½ç½®è¿›è¡Œåç§»ï¼Œä¸è¿‡è¿™é‡Œå°±1ä¸ª
+	objCBAddress += objCBBufIndex * objCBByteSize;
+
+	int heapIndex = 0;
+	auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());//è·å¾—CBVå †é¦–åœ°å€
+	handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);	//åç§»ï¼Œè·å–å½“å‰æè¿°ç¬¦åœ¨CBVå †ä¸­çš„ä½ç½®ï¼Œä¸å¤Ÿè¿™æ˜¯ç¬¬ä¸€ä¸ªè§†å›¾ï¼Œå…¶å®ä¹Ÿå°±æ˜¯åç§»0
+
+	//è¿™é‡Œåˆ›å»ºçš„æ˜¯CBVï¼ˆè§†å›¾ï¼‰
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-	cbvDesc.BufferLocation = cbAddress;
+	cbvDesc.BufferLocation = objCBAddress;
 	cbvDesc.SizeInBytes = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
 	md3dDevice->CreateConstantBufferView(
 		&cbvDesc,
 		mCbvHeap->GetCPUDescriptorHandleForHeapStart());
+
+	//åˆ›å»ºVPçŸ©é˜µå¸¸é‡ç¼“å†²åŒº
+	passCB = std::make_unique<UploadBuffer<PassConstants>>(md3dDevice.Get(), 1, true);
+
+	UINT passCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
+
+	D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->Resource()->GetGPUVirtualAddress();
+
+	int passCBBufIndex = 0;
+	passCBAddress += passCBBufIndex * objCBByteSize;
+
+	heapIndex = 1;
+	handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
+	handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);
+
+	//åˆ›å»ºCBVæè¿°ç¬¦
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc1;
+	cbvDesc1.BufferLocation = passCBAddress;
+	cbvDesc1.SizeInBytes = passCBByteSize;
+	md3dDevice->CreateConstantBufferView(&cbvDesc1, handle);
 }
 
 void ShapesApp::BuildRootSignature()
 {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[1];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
 
-	CD3DX12_DESCRIPTOR_RANGE cbvTable;
-	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable);
+	//åˆ›å»ºç”±å•ä¸ªCBVæ‰€ç»„æˆçš„æè¿°ç¬¦è¡¨
+	CD3DX12_DESCRIPTOR_RANGE cbvTable0;
+	cbvTable0.Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV, //æè¿°ç¬¦ç±»å‹
+		1, //æè¿°ç¬¦æ•°é‡
+		0);//æè¿°ç¬¦æ‰€ç»‘å®šçš„å¯„å­˜å™¨æ§½å·
+	CD3DX12_DESCRIPTOR_RANGE cbvTable1;
+	cbvTable1.Init(
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV, //æè¿°ç¬¦ç±»å‹
+		1, //æè¿°ç¬¦æ•°é‡
+		1);//æè¿°ç¬¦æ‰€ç»‘å®šçš„å¯„å­˜å™¨æ§½å·
+	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable0);
+	slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable1);
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(1, slotRootParameter, 0, nullptr,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, slotRootParameter, 0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
@@ -466,7 +527,7 @@ void ShapesApp::BuildShadersAndInputLayout()
 
 void ShapesApp::BuildBoxGeometry()
 {
-	//Ä¬ÈÏ
+	//é»˜è®¤
 	std::array<Vertex, 8> vertices =
 	{
 		Vertex({ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT4(Colors::White) }),
