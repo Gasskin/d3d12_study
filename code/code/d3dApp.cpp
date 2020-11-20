@@ -472,7 +472,7 @@ void D3DApp::OnResize()
 	FlushCommandQueue();
 
 	//设置视口与裁剪矩形，在具体Draw的时候，才会绑定这两个
-	mScreenViewport.TopLeftX = 0;
+	mScreenViewport.TopLeftX = -320;
 	mScreenViewport.TopLeftY = 0;
 	mScreenViewport.Width = static_cast<float>(mClientWidth);
 	mScreenViewport.Height = static_cast<float>(mClientHeight);
