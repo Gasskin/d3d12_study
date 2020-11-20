@@ -143,6 +143,7 @@
     <ClInclude Include="d3dUtil.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="GameTimer.h" />
+    <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
@@ -151,6 +152,7 @@
     <ClCompile Include="d3dApp.cpp" />
     <ClCompile Include="d3dUtil.cpp" />
     <ClCompile Include="GameTimer.cpp" />
+    <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="InitDirect3DApp.cpp" />
     <ClCompile Include="MathHelper.cpp" />
     <ClCompile Include="ShapesApp.cpp" />

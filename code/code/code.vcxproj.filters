@@ -36,6 +36,9 @@
     <ClInclude Include="MathHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="GeometryGenerator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3dUtil.cpp">
@@ -58,6 +61,9 @@
     </ClCompile>
     <ClCompile Include="ShapesApp.cpp">
       <Filter>源文件\example</Filter>
+    </ClCompile>
+    <ClCompile Include="GeometryGenerator.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

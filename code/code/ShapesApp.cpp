@@ -484,7 +484,8 @@ void ShapesApp::BuildRootSignature()
 	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable0);
 	slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable1);
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, slotRootParameter, 0, nullptr,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, //根参数数量修改为2
+		slotRootParameter, 0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
