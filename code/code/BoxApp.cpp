@@ -1,4 +1,4 @@
-#include "d3dApp.h"
+ï»¿#include "d3dApp.h"
 #include "UploadBuffer.h"
 #include "MathHelper.h"
 #include <WindowsX.h>
@@ -8,16 +8,17 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 //====================================================
-//¶îÍâĞÅÏ¢
+//é¢å¤–ä¿¡æ¯
 //====================================================
 
-//´¢´æ³£Á¿ĞÅÏ¢£¬mvp¾ØÕó
+//å‚¨å­˜å¸¸é‡ä¿¡æ¯ï¼ŒmvpçŸ©é˜µ
 struct ObjectConstants
 {
 	XMFLOAT4X4 WorldViewProj = MathHelper::Identity4x4();
+	float gTime;
 };
 
-//¶¥µã
+//é¡¶ç‚¹
 struct VPosData
 {
 	XMFLOAT3 Pos;
@@ -28,7 +29,7 @@ struct VColorData
 };
 
 //====================================================
-//Ö÷Àà
+//ä¸»ç±»
 //====================================================
 class BoxApp :public D3DApp
 {
@@ -46,38 +47,38 @@ private:
 	virtual void	Draw(const GameTimer& gt)override;
 	virtual void	OnResize()override;
 private:
-	void BuildDescriptorHeaps();//´´½¨ÃèÊö·û¶Ñ
-	void BuildConstantBuffers();//´´½¨³£Á¿»º³åÇøÓëÊÓÍ¼
-	void BuildRootSignature();//´´½¨¸ùÇ©Ãû
-	void BuildShadersAndInputLayout();//´´½¨¶¥µãÊäÈë²¼¾Ö
-	void BuildBoxGeometry();//¹¹½¨¼¸ºÎÌå£¨¶¥µãÓëË÷Òı£©
-	void BuildPSO();//´´½¨Á÷Ë®Ïß¶ÔÏó
+	void BuildDescriptorHeaps();//åˆ›å»ºæè¿°ç¬¦å †
+	void BuildConstantBuffers();//åˆ›å»ºå¸¸é‡ç¼“å†²åŒºä¸è§†å›¾
+	void BuildRootSignature();//åˆ›å»ºæ ¹ç­¾å
+	void BuildShadersAndInputLayout();//åˆ›å»ºé¡¶ç‚¹è¾“å…¥å¸ƒå±€
+	void BuildBoxGeometry();//æ„å»ºå‡ ä½•ä½“ï¼ˆé¡¶ç‚¹ä¸ç´¢å¼•ï¼‰
+	void BuildPSO();//åˆ›å»ºæµæ°´çº¿å¯¹è±¡
 private:
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);
 	void OnMouseMove(WPARAM btnState, int x, int y);
 private:
-	ComPtr<ID3D12DescriptorHeap>					mCbvHeap = nullptr;//³£Á¿»º³åÇø ÃèÊö·û¶Ñ
+	ComPtr<ID3D12DescriptorHeap>					mCbvHeap = nullptr;//å¸¸é‡ç¼“å†²åŒº æè¿°ç¬¦å †
 
-	std::unique_ptr<UploadBuffer<ObjectConstants>>	mObjectCB = nullptr;//³£Á¿»º³åÇø
+	std::unique_ptr<UploadBuffer<ObjectConstants>>	mObjectCB = nullptr;//å¸¸é‡ç¼“å†²åŒº
 
-	ComPtr<ID3D12RootSignature>						mRootSignature = nullptr;//¸ùÇ©Ãû
+	ComPtr<ID3D12RootSignature>						mRootSignature = nullptr;//æ ¹ç­¾å
 
-	ComPtr<ID3DBlob>								mvsByteCode = nullptr;//¶¥µã×ÅÉ«Æ÷
-	ComPtr<ID3DBlob>								mpsByteCode = nullptr;//ÏñËØ×ÅÉ«Æ÷
-	std::vector<D3D12_INPUT_ELEMENT_DESC>			mInputLayout;//ÊäÈë²¼¾Ö
+	ComPtr<ID3DBlob>								mvsByteCode = nullptr;//é¡¶ç‚¹ç€è‰²å™¨
+	ComPtr<ID3DBlob>								mpsByteCode = nullptr;//åƒç´ ç€è‰²å™¨
+	std::vector<D3D12_INPUT_ELEMENT_DESC>			mInputLayout;//è¾“å…¥å¸ƒå±€
 
-	std::unique_ptr<MeshGeometry>					mBoxGeo = nullptr;//ºĞ×ÓµÄ¶¥µãÓëË÷Òı»º³å
+	std::unique_ptr<MeshGeometry>					mBoxGeo = nullptr;//ç›’å­çš„é¡¶ç‚¹ä¸ç´¢å¼•ç¼“å†²
 
-	ComPtr<ID3D12PipelineState>						mPSO = nullptr;//Á÷Ë®Ïß¶ÔÏó
+	ComPtr<ID3D12PipelineState>						mPSO = nullptr;//æµæ°´çº¿å¯¹è±¡
 private:
-	XMFLOAT4X4	mWorld = MathHelper::Identity4x4();//ÊÀ½ç¾ØÕó
-	XMFLOAT4X4	mView = MathHelper::Identity4x4();//¹Û²ì¾ØÕó
-	XMFLOAT4X4	mProj = MathHelper::Identity4x4();//Í¶Ó°¾ØÕó
+	XMFLOAT4X4	mWorld = MathHelper::Identity4x4();//ä¸–ç•ŒçŸ©é˜µ
+	XMFLOAT4X4	mView = MathHelper::Identity4x4();//è§‚å¯ŸçŸ©é˜µ
+	XMFLOAT4X4	mProj = MathHelper::Identity4x4();//æŠ•å½±çŸ©é˜µ
 
 	float		mTheta = 1.5f * XM_PI; //1.5pai
-	float		mPhi = XM_PIDIV4;//ËÄ·ÖÖ®pai
-	float		mRadius = 5.0f;//»¡¶È
+	float		mPhi = XM_PIDIV4;//å››åˆ†ä¹‹pai
+	float		mRadius = 5.0f;//å¼§åº¦
 private:
 	POINT	mLastMousePos;
 };
@@ -91,28 +92,28 @@ BoxApp::~BoxApp()
 {
 }
 
-//Èë¿Ú
+//å…¥å£
 bool BoxApp::Initialize()
 {
 	if (!D3DApp::Initialize())
 		return false;
 
-	//ÖØÖÃÃüÁîÁĞ±íÓëÃüÁî·ÖÅäÆ÷
+	//é‡ç½®å‘½ä»¤åˆ—è¡¨ä¸å‘½ä»¤åˆ†é…å™¨
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-	//³õÊ¼»¯
+	//åˆå§‹åŒ–
 	BuildDescriptorHeaps();
 	BuildConstantBuffers();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
 	BuildBoxGeometry();
 	BuildPSO();
-	//¹Ø±ÕÃüÁîÁĞ±í
+	//å…³é—­å‘½ä»¤åˆ—è¡¨
 	ThrowIfFailed(mCommandList->Close());
-	//Ö´ĞĞÃüÁî
+	//æ‰§è¡Œå‘½ä»¤
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	//Î§À¸
+	//å›´æ 
 	FlushCommandQueue();
 
 	return true;
@@ -137,6 +138,7 @@ void BoxApp::Update(const GameTimer& gt)
 
 	ObjectConstants objConstants;
 	XMStoreFloat4x4(&objConstants.WorldViewProj, XMMatrixTranspose(worldViewProj));
+	objConstants.gTime = gt.TotalTime();
 	mObjectCB->CopyData(0, objConstants);
 }
 
@@ -160,20 +162,20 @@ void BoxApp::Draw(const GameTimer& gt)
 
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
-	//ÉèÖÃCBVÃèÊö·û¶Ñ
+	//è®¾ç½®CBVæè¿°ç¬¦å †
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	//ÉèÖÃ¸ùÇ©Ãû
+	//è®¾ç½®æ ¹ç­¾å
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	//ÉèÖÃ¶¥µã»º³å
+	//è®¾ç½®é¡¶ç‚¹ç¼“å†²
 	mCommandList->IASetVertexBuffers(0, 1, &mBoxGeo->vPosBufferView());
 	mCommandList->IASetVertexBuffers(1, 1, &mBoxGeo->vColorBufferView());
-	//ÉèÖÃË÷Òı»º³å
+	//è®¾ç½®ç´¢å¼•ç¼“å†²
 	mCommandList->IASetIndexBuffer(&mBoxGeo->IndexBufferView());
-	//ÉèÖÃÍ¼ÔªÍØÆË
+	//è®¾ç½®å›¾å…ƒæ‹“æ‰‘
 	mCommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	//ÉèÖÃ¸ùÃèÊö·û±í
+	//è®¾ç½®æ ¹æè¿°ç¬¦è¡¨
 	mCommandList->SetGraphicsRootDescriptorTable(0, mCbvHeap->GetGPUDescriptorHandleForHeapStart());
 
 	mCommandList->DrawIndexedInstanced(
@@ -218,30 +220,30 @@ void BoxApp::OnMouseUp(WPARAM btnState, int x, int y)
 
 void BoxApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
-	//Èç¹ûÔÚ×ó¼ü°´ÏÂ×´Ì¬
+	//å¦‚æœåœ¨å·¦é”®æŒ‰ä¸‹çŠ¶æ€
 	if ((btnState & MK_LBUTTON) != 0)
 	{
-		//½«Êó±êµÄÒÆ¶¯¾àÀë»»Ëã³É»¡¶È£¬0.25Îªµ÷½ÚãĞÖµ
+		//å°†é¼ æ ‡çš„ç§»åŠ¨è·ç¦»æ¢ç®—æˆå¼§åº¦ï¼Œ0.25ä¸ºè°ƒèŠ‚é˜ˆå€¼
 		float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
 		float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
-		//¼ÆËãÊó±êÃ»ÓĞËÉ¿ªÇ°µÄÀÛ¼Æ»¡¶È
+		//è®¡ç®—é¼ æ ‡æ²¡æœ‰æ¾å¼€å‰çš„ç´¯è®¡å¼§åº¦
 		mTheta += dx;
 		mPhi += dy;
-		//ÏŞÖÆ½Ç¶ÈphiµÄ·¶Î§ÔÚ£¨0.1£¬ Pi-0.1£©
+		//é™åˆ¶è§’åº¦phiçš„èŒƒå›´åœ¨ï¼ˆ0.1ï¼Œ Pi-0.1ï¼‰
 		mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
 	}
-	//Èç¹ûÔÚÓÒ¼ü°´ÏÂ×´Ì¬
+	//å¦‚æœåœ¨å³é”®æŒ‰ä¸‹çŠ¶æ€
 	else if ((btnState & MK_RBUTTON) != 0)
 	{
-		//½«Êó±êµÄÒÆ¶¯¾àÀë»»Ëã³ÉËõ·Å´óĞ¡£¬0.005Îªµ÷½ÚãĞÖµ
+		//å°†é¼ æ ‡çš„ç§»åŠ¨è·ç¦»æ¢ç®—æˆç¼©æ”¾å¤§å°ï¼Œ0.005ä¸ºè°ƒèŠ‚é˜ˆå€¼
 		float dx = 0.005f * static_cast<float>(x - mLastMousePos.x);
 		float dy = 0.005f * static_cast<float>(y - mLastMousePos.y);
-		//¸ù¾İÊó±êÊäÈë¸üĞÂÉãÏñ»ú¿ÉÊÓ·¶Î§°ë¾¶
+		//æ ¹æ®é¼ æ ‡è¾“å…¥æ›´æ–°æ‘„åƒæœºå¯è§†èŒƒå›´åŠå¾„
 		mRadius += dx - dy;
-		//ÏŞÖÆ¿ÉÊÓ·¶Î§°ë¾¶
+		//é™åˆ¶å¯è§†èŒƒå›´åŠå¾„
 		mRadius = MathHelper::Clamp(mRadius, 3.0f, 15.0f);
 	}
-	//½«µ±Ç°Êó±ê×ø±ê¸³Öµ¸ø¡°ÉÏÒ»´ÎÊó±ê×ø±ê¡±£¬ÎªÏÂÒ»´ÎÊó±ê²Ù×÷Ìá¹©ÏÈÇ°Öµ
+	//å°†å½“å‰é¼ æ ‡åæ ‡èµ‹å€¼ç»™â€œä¸Šä¸€æ¬¡é¼ æ ‡åæ ‡â€ï¼Œä¸ºä¸‹ä¸€æ¬¡é¼ æ ‡æ“ä½œæä¾›å…ˆå‰å€¼
 	mLastMousePos.x = x;
 	mLastMousePos.y = y;
 }
@@ -253,19 +255,19 @@ LRESULT BoxApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE)
 		{
-			OutputDebugString(L"È¡Ïû¼¤»î´°¿Ú\n");
+			OutputDebugString(L"å–æ¶ˆæ¿€æ´»çª—å£\n");
 			mAppPaused = true;
 			mTimer.Stop();
 		}
 		else
 		{
-			OutputDebugString(L"¼¤»î´°¿Ú\n");
+			OutputDebugString(L"æ¿€æ´»çª—å£\n");
 			mAppPaused = false;
 			mTimer.Start();
 		}
 		return 0;
 	case WM_SIZE:
-		OutputDebugString(L"¸Ä±ä´°¿Ú´óĞ¡ ");
+		OutputDebugString(L"æ”¹å˜çª—å£å¤§å° ");
 		mClientWidth = LOWORD(lParam);
 		mClientHeight = HIWORD(lParam);
 		if (md3dDevice)
@@ -300,10 +302,10 @@ LRESULT BoxApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				else if (mResizing)
 				{
 					/*
-						ÎÒÃÇ¿ÉÒÔÒ»Ö±µ÷Õû´°¿Ú´óĞ¡£¬µ«Èç¹ûÍ¬Ê±Ò²Ò»Ö±ÖØĞÂ»æÖÆ£¬ÄÇÊÇºÜÃ»±ØÒªµÄ£¬ÎÒÃÇÖ»»áÔÚµ÷ÕûÍêÖ®ºó£¬½øĞĞÒ»´ÎÖØĞÂ»æÖÆ
-						ÏÂÃæ»¹ÓĞÁ½¸öcase£¬Ò»¸öÊÇµ±ÎÒÃÇ¿ªÊ¼µ÷Õû´°¿Ú´óĞ¡Ê±£¬ÁíÒ»¸öÊÇµ±ÎÒÃÇ½áÊøµ÷Õû´°¿Ú´óĞ¡Ê±
-						ËùÒÔµ±ÎÒÃÇ¿ªÊ¼µ÷Õû´°¿Ú´óĞ¡Ê±£¬ÉèÖÃmResizingÎªtrue£¬ÕâÑù£¬ÔÙWM_SIZEÕâ¸öÏûÏ¢ÖĞ£¬¾Í»áÒ»Ö±½øÈëÏÖÔÚÕâ¸ö¿Õ·ÖÖ§£¬É¶Ò²²»»á¸É
-						µÈ»æÖÆ½áÊøÊ±£¬ÎÒÃÇÔÙÉèÖÃmResizingÎªfalse£¬½øĞĞÒ»´ÎOnResize()
+						æˆ‘ä»¬å¯ä»¥ä¸€ç›´è°ƒæ•´çª—å£å¤§å°ï¼Œä½†å¦‚æœåŒæ—¶ä¹Ÿä¸€ç›´é‡æ–°ç»˜åˆ¶ï¼Œé‚£æ˜¯å¾ˆæ²¡å¿…è¦çš„ï¼Œæˆ‘ä»¬åªä¼šåœ¨è°ƒæ•´å®Œä¹‹åï¼Œè¿›è¡Œä¸€æ¬¡é‡æ–°ç»˜åˆ¶
+						ä¸‹é¢è¿˜æœ‰ä¸¤ä¸ªcaseï¼Œä¸€ä¸ªæ˜¯å½“æˆ‘ä»¬å¼€å§‹è°ƒæ•´çª—å£å¤§å°æ—¶ï¼Œå¦ä¸€ä¸ªæ˜¯å½“æˆ‘ä»¬ç»“æŸè°ƒæ•´çª—å£å¤§å°æ—¶
+						æ‰€ä»¥å½“æˆ‘ä»¬å¼€å§‹è°ƒæ•´çª—å£å¤§å°æ—¶ï¼Œè®¾ç½®mResizingä¸ºtrueï¼Œè¿™æ ·ï¼Œå†WM_SIZEè¿™ä¸ªæ¶ˆæ¯ä¸­ï¼Œå°±ä¼šä¸€ç›´è¿›å…¥ç°åœ¨è¿™ä¸ªç©ºåˆ†æ”¯ï¼Œå•¥ä¹Ÿä¸ä¼šå¹²
+						ç­‰ç»˜åˆ¶ç»“æŸæ—¶ï¼Œæˆ‘ä»¬å†è®¾ç½®mResizingä¸ºfalseï¼Œè¿›è¡Œä¸€æ¬¡OnResize()
 					*/
 				}
 				else
@@ -377,20 +379,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 }
 
 /*
-	»º³åÇøÏëÒª°ó¶¨µ½Á÷Ë®Ïß£¬ĞèÒª½èÖú»º³åÇøÊÓÍ¼£¬¶ø²¿·ÖÊÓÍ¼£¬ĞèÒª´¢´æÔÚÃèÊö·û¶ÑÖĞ£¬Èç³£Á¿»º³åÊÓÍ¼£¬DSV,RTVµÈ
-	µ±È»Ò²ÓĞÒ»²¿·ÖÊÓÍ¼ÊÇ²»ĞèÒªÃèÊö·û¶ÑµÄ£¬Èç¶¥µã»º³åÊÓÍ¼£¬Ë÷Òı»º³åÊÓÍ¼
-	ÕâÀïÎÒÃÇ´´½¨µÄÃèÊö·û¶Ñ£¬Ö÷ÒªÊÇÓÃÓÚ´¢´æ³£Á¿»º³åÇøÊÓÍ¼µÄ
+	ç¼“å†²åŒºæƒ³è¦ç»‘å®šåˆ°æµæ°´çº¿ï¼Œéœ€è¦å€ŸåŠ©ç¼“å†²åŒºè§†å›¾ï¼Œè€Œéƒ¨åˆ†è§†å›¾ï¼Œéœ€è¦å‚¨å­˜åœ¨æè¿°ç¬¦å †ä¸­ï¼Œå¦‚å¸¸é‡ç¼“å†²è§†å›¾ï¼ŒDSV,RTVç­‰
+	å½“ç„¶ä¹Ÿæœ‰ä¸€éƒ¨åˆ†è§†å›¾æ˜¯ä¸éœ€è¦æè¿°ç¬¦å †çš„ï¼Œå¦‚é¡¶ç‚¹ç¼“å†²è§†å›¾ï¼Œç´¢å¼•ç¼“å†²è§†å›¾
+	è¿™é‡Œæˆ‘ä»¬åˆ›å»ºçš„æè¿°ç¬¦å †ï¼Œä¸»è¦æ˜¯ç”¨äºå‚¨å­˜å¸¸é‡ç¼“å†²åŒºè§†å›¾çš„
 */
 void BoxApp::BuildDescriptorHeaps()
 {
-	//ÃèÊö ÃèÊö·û¶Ñ
+	//æè¿° æè¿°ç¬¦å †
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
 	cbvHeapDesc.NumDescriptors = 1;
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
 
-	//´´½¨ÃèÊö·û¶Ñ
+	//åˆ›å»ºæè¿°ç¬¦å †
 	ThrowIfFailed(
 		md3dDevice->CreateDescriptorHeap(
 			&cbvHeapDesc,
@@ -400,7 +402,7 @@ void BoxApp::BuildDescriptorHeaps()
 
 void BoxApp::BuildConstantBuffers()
 {
-	//´´½¨³£Á¿»º³åÇø£¬ÔÚUploadBufferÀàÖĞ¶¨ÒåÁË´´½¨¶ÑµÄ¹ı³Ì
+	//åˆ›å»ºå¸¸é‡ç¼“å†²åŒºï¼Œåœ¨UploadBufferç±»ä¸­å®šä¹‰äº†åˆ›å»ºå †çš„è¿‡ç¨‹
 	mObjectCB = std::make_unique<UploadBuffer<ObjectConstants>>(md3dDevice.Get(), 1, true);
 
 	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
@@ -409,7 +411,7 @@ void BoxApp::BuildConstantBuffers()
 
 	int boxCBufIndex = 0;
 	cbAddress += boxCBufIndex * objCBByteSize;
-	//ÕâÀï´´½¨µÄÊÇCBV
+	//è¿™é‡Œåˆ›å»ºçš„æ˜¯CBV
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
 	cbvDesc.BufferLocation = cbAddress;
 	cbvDesc.SizeInBytes = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
@@ -470,40 +472,54 @@ void BoxApp::BuildShadersAndInputLayout()
 
 void BoxApp::BuildBoxGeometry()
 {
-	std::array<VPosData, 5> verticesPos =
+	std::array<VPosData, 8> verticesPos =
 	{
-		VPosData({ XMFLOAT3(+0.0f, +1.0f, +0.0f) }),
 		VPosData({ XMFLOAT3(-1.0f, -1.0f, -1.0f) }),
+		VPosData({ XMFLOAT3(-1.0f, +1.0f, -1.0f) }),
+		VPosData({ XMFLOAT3(+1.0f, +1.0f, -1.0f) }),
 		VPosData({ XMFLOAT3(+1.0f, -1.0f, -1.0f) }),
-		VPosData({ XMFLOAT3(+1.0f, -1.0f, +1.0f) }),
-		VPosData({ XMFLOAT3(-1.0f, -1.0f, +1.0f) })
+		VPosData({ XMFLOAT3(-1.0f, -1.0f, +1.0f) }),
+		VPosData({ XMFLOAT3(-1.0f, +1.0f, +1.0f) }),
+		VPosData({ XMFLOAT3(+1.0f, +1.0f, +1.0f) }),
+		VPosData({ XMFLOAT3(+1.0f, -1.0f, +1.0f) })
 	};
-	std::array<VColorData, 5> verticesColor =
+	std::array<VColorData, 8> verticesColor =
 	{
+		VColorData({ XMFLOAT4(Colors::White) }),
+		VColorData({ XMFLOAT4(Colors::Black) }),
 		VColorData({ XMFLOAT4(Colors::Red) }),
 		VColorData({ XMFLOAT4(Colors::Green) }),
-		VColorData({ XMFLOAT4(Colors::Green) }),
-		VColorData({ XMFLOAT4(Colors::Green) }),
-		VColorData({ XMFLOAT4(Colors::Green) })
+		VColorData({ XMFLOAT4(Colors::Blue) }),
+		VColorData({ XMFLOAT4(Colors::Yellow) }),
+		VColorData({ XMFLOAT4(Colors::Cyan) }),
+		VColorData({ XMFLOAT4(Colors::Magenta) })
 	};
 
 	std::array<std::uint16_t, 36> indices =
 	{
-		//Ç°
-		0, 2, 1,
+		//å‰
+		0, 1, 2,
+		0, 2, 3,
 
-		//ºó
-		0, 4, 3,
+		//å
+		4, 6, 5,
+		4, 7, 6,
 
-		//×ó
-		0, 1, 4,
+		//å·¦
+		4, 5, 1,
+		4, 1, 0,
 
-		//ÓÒ
-		0, 3, 2,
+		//å³
+		3, 2, 6,
+		3, 6, 7,
 
-		//ÏÂ
-		2, 4, 1,
-		2, 3, 4
+		//ä¸Š
+		1, 5, 6,
+		1, 6, 2,
+
+		//ä¸‹
+		4, 0, 3,
+		4, 3, 7
 	};
 
 	const UINT vPosByteSize = (UINT)verticesPos.size() * sizeof(VPosData);
@@ -513,7 +529,7 @@ void BoxApp::BuildBoxGeometry()
 	mBoxGeo = std::make_unique<MeshGeometry>();
 	mBoxGeo->Name = "boxGeo";
 
-	//½«Êı¾İ¸´ÖÆµ½CPU£¬ÔİÊ±²»Àí½â×÷ÓÃ£¬×¢ÊÍµôÒ²¿ÉÒÔÄÜÔËĞĞ
+	//å°†æ•°æ®å¤åˆ¶åˆ°CPUï¼Œæš‚æ—¶ä¸ç†è§£ä½œç”¨ï¼Œæ³¨é‡Šæ‰ä¹Ÿå¯ä»¥èƒ½è¿è¡Œ
 	/*ThrowIfFailed(D3DCreateBlob(vbByteSize, &mBoxGeo->VertexBufferCPU));
 	CopyMemory(mBoxGeo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
 
