@@ -29,6 +29,26 @@ struct Vertex
 	XMFLOAT4 Color;
 };
 
+//渲染项
+struct RenderItem
+{
+	RenderItem() = default;
+
+	//该几何体的世界矩阵
+	XMFLOAT4X4 world = MathHelper::Identity4x4();
+
+	//该几何体的常量数据在objConstantBuffer中的索引
+	UINT objCBIndex = -1;
+
+	//该几何体的图元拓扑类型
+	D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+	//该几何体的绘制三参数
+	UINT IndexCount = 0;
+	UINT StartIndexLocation = 0;
+	UINT BaseVertexLocation = 0;
+};
+
 //====================================================
 //主类
 //====================================================
@@ -54,6 +74,9 @@ private:
 	void BuildShadersAndInputLayout();//创建顶点输入布局
 	void BuildGeometry();//构建几何体（顶点与索引）
 	void BuildPSO();//创建流水线对象
+
+	void BuildRenderItems();
+	void DrawRenderItems();
 private:
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);
@@ -73,6 +96,9 @@ private:
 	std::unique_ptr<MeshGeometry>					mGeos = nullptr;//盒子的顶点与索引缓冲
 
 	ComPtr<ID3D12PipelineState>						mPSO = nullptr;//流水线对象
+
+	std::vector<std::unique_ptr<RenderItem>>		allRitems;//暂时不能理解为什么需要两个vector来创建渲染项
+	std::vector<RenderItem*>						mOpaqueRitems;
 private:
 	XMFLOAT4X4	mWorld = MathHelper::Identity4x4();//世界矩阵
 	XMFLOAT4X4	mView = MathHelper::Identity4x4();//观察矩阵
@@ -104,11 +130,12 @@ bool ShapesApp::Initialize()
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 	//初始化
+	BuildGeometry();
+	BuildRenderItems();
 	BuildDescriptorHeaps();
 	BuildConstantBuffers();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
-	BuildGeometry();
 	BuildPSO();
 	//关闭命令列表
 	ThrowIfFailed(mCommandList->Close());
@@ -134,22 +161,24 @@ void ShapesApp::Update(const GameTimer& gt)
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&mView, view);
 
-	//m矩阵
-	XMMATRIX world = XMLoadFloat4x4(&mWorld);
-	world *= XMMatrixTranslation(0.0f, 0.0f, 0.0f);//构建世界矩阵，x平移两个单位
-
-	//vp矩阵
-	XMMATRIX proj = XMLoadFloat4x4(&mProj);
-	XMMATRIX vp = view * proj;
-
 	ObjectConstants objConstants;
 	PassConstants passConstants;
-	//拷贝数据
-	XMStoreFloat4x4(&passConstants.viewProj, XMMatrixTranspose(vp));
-	passCB->CopyData(0, passConstants);
+	//世界矩阵数据传递至GPU
+	for (auto& e : allRitems)
+	{
+		XMMATRIX w = XMLoadFloat4x4(&e->world);
+		//XMMATRIX赋值给XMFLOAT4X4
+		XMStoreFloat4x4(&objConstants.world, XMMatrixTranspose(w));
+		//将数据拷贝至GPU缓存
+		objCB->CopyData(e->objCBIndex, objConstants);
+	}
 
-	XMStoreFloat4x4(&objConstants.world, XMMatrixTranspose(world));
-	objCB->CopyData(0, objConstants);
+	//投影矩阵数据传递至GPU
+	XMMATRIX p = XMLoadFloat4x4(&mProj);
+	//矩阵计算
+	XMMATRIX VP_Matrix = view * p;
+	XMStoreFloat4x4(&passConstants.viewProj, XMMatrixTranspose(VP_Matrix));
+	passCB->CopyData(0, passConstants);
 }
 
 void ShapesApp::Draw(const GameTimer& gt)
@@ -178,51 +207,14 @@ void ShapesApp::Draw(const GameTimer& gt)
 	//设置根签名
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	mCommandList->IASetVertexBuffers(0, 1, &mGeos->VertexBufferView());
-
-	mCommandList->IASetIndexBuffer(&mGeos->IndexBufferView());
-	//设置图元拓扑
-	mCommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	//设置根描述符表
-	int objCbvIndex = 0;
+	int passCbvIndex = allRitems.size();
 	auto handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
-	handle.Offset(objCbvIndex, mCbvSrvUavDescriptorSize);
-	mCommandList->SetGraphicsRootDescriptorTable(
-		0, //根参数的起始索引
-		handle);
-
-	int passCbvIndex = 1;
-	handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
 	handle.Offset(passCbvIndex, mCbvSrvUavDescriptorSize);
 	mCommandList->SetGraphicsRootDescriptorTable(
 		1, //根参数的起始索引
 		handle);
 
-	mCommandList->DrawIndexedInstanced(
-		mGeos->DrawArgs["box"].IndexCount, //每个实例要绘制的索引数
-		1,	//实例化个数
-		mGeos->DrawArgs["box"].StartIndexLocation,	//起始索引位置
-		mGeos->DrawArgs["box"].BaseVertexLocation,	//子物体起始索引在全局索引中的位置
-		0);	//实例化的高级技术，暂时设置为0
-	mCommandList->DrawIndexedInstanced(
-		mGeos->DrawArgs["grid"].IndexCount, //每个实例要绘制的索引数
-		1,	//实例化个数
-		mGeos->DrawArgs["grid"].StartIndexLocation,	//起始索引位置
-		mGeos->DrawArgs["grid"].BaseVertexLocation,	//子物体起始索引在全局索引中的位置
-		0);	//实例化的高级技术，暂时设置为0
-	mCommandList->DrawIndexedInstanced(
-		mGeos->DrawArgs["sphere"].IndexCount, //每个实例要绘制的索引数
-		1,	//实例化个数
-		mGeos->DrawArgs["sphere"].StartIndexLocation,	//起始索引位置
-		mGeos->DrawArgs["sphere"].BaseVertexLocation,	//子物体起始索引在全局索引中的位置
-		0);	//实例化的高级技术，暂时设置为0
-	mCommandList->DrawIndexedInstanced(
-		mGeos->DrawArgs["cylinder"].IndexCount, //每个实例要绘制的索引数
-		1,	//实例化个数
-		mGeos->DrawArgs["cylinder"].StartIndexLocation,	//起始索引位置
-		mGeos->DrawArgs["cylinder"].BaseVertexLocation,	//子物体起始索引在全局索引中的位置
-		0);	//实例化的高级技术，暂时设置为0
+	DrawRenderItems();
 
 	mCommandList->ResourceBarrier(
 		1,
@@ -427,9 +419,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 */
 void ShapesApp::BuildDescriptorHeaps()
 {
+	UINT objectCount = (UINT)allRitems.size();
 	//描述 描述符堆
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
-	cbvHeapDesc.NumDescriptors = 2;//现在有两个常量缓冲区，所以要两个常量堆
+	cbvHeapDesc.NumDescriptors = objectCount+1;//objectCount个W缓冲，1个VP缓冲
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
@@ -445,27 +438,31 @@ void ShapesApp::BuildDescriptorHeaps()
 void ShapesApp::BuildConstantBuffers()
 {
 	//创建M矩阵常量缓冲区
-	objCB = std::make_unique<UploadBuffer<ObjectConstants>>(md3dDevice.Get(), 1, true);
-
+	UINT objectCount = (UINT)allRitems.size();
+	objCB = std::make_unique<UploadBuffer<ObjectConstants>>(md3dDevice.Get(), objectCount, true);
 	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
-	D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objCB->Resource()->GetGPUVirtualAddress();
+	for (int i = 0; i < objectCount; i++)
+	{
+		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objCB->Resource()->GetGPUVirtualAddress();
 
-	int objCBBufIndex = 0;//这里是用于偏移子物体的，比如有3个物体的M矩阵都储存在了这一个常量缓冲区，那就要对视图位置进行偏移，不过这里就1个
-	objCBAddress += objCBBufIndex * objCBByteSize;
+		int objCBBufIndex = i;//这里是用于偏移子物体的，比如有3个物体的M矩阵都储存在了这一个常量缓冲区，那就要对视图位置进行偏移，不过这里就1个
+		objCBAddress += objCBBufIndex * objCBByteSize;
 
-	int heapIndex = 0;
-	auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());//获得CBV堆首地址
-	handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);	//偏移，获取当前描述符在CBV堆中的位置，不够这是第一个视图，其实也就是偏移0
+		int heapIndex = i;
+		auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());//获得CBV堆首地址
+		handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);	//偏移，获取当前描述符在CBV堆中的位置，不够这是第一个视图，其实也就是偏移0
 
-	//这里创建的是CBV（视图）
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-	cbvDesc.BufferLocation = objCBAddress;
-	cbvDesc.SizeInBytes = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+		//这里创建的是CBV（视图）
+		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+		cbvDesc.BufferLocation = objCBAddress;
+		cbvDesc.SizeInBytes = objCBByteSize;
 
-	md3dDevice->CreateConstantBufferView(
-		&cbvDesc,
-		mCbvHeap->GetCPUDescriptorHandleForHeapStart());
+		md3dDevice->CreateConstantBufferView(
+			&cbvDesc,
+			handle);
+	}
+	
 
 	//创建VP矩阵常量缓冲区
 	passCB = std::make_unique<UploadBuffer<PassConstants>>(md3dDevice.Get(), 1, true);
@@ -475,10 +472,10 @@ void ShapesApp::BuildConstantBuffers()
 	D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->Resource()->GetGPUVirtualAddress();
 
 	int passCBBufIndex = 0;
-	passCBAddress += passCBBufIndex * objCBByteSize;
+	passCBAddress += passCBBufIndex * passCBByteSize;
 
-	heapIndex = 1;
-	handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
+	int heapIndex = objectCount;
+	auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
 	handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);
 
 	//创建CBV描述符
@@ -677,4 +674,103 @@ void ShapesApp::BuildPSO()
 	psoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	psoDesc.DSVFormat = mDepthStencilFormat;
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
+}
+
+void ShapesApp::BuildRenderItems()
+{
+	auto boxRitem = std::make_unique<RenderItem>();
+	XMStoreFloat4x4(&(boxRitem->world), XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f));
+	boxRitem->objCBIndex = 0;//BOX常量数据（world矩阵）在objConstantBuffer索引0上
+	boxRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	boxRitem->IndexCount = mGeos->DrawArgs["box"].IndexCount;
+	boxRitem->BaseVertexLocation = mGeos->DrawArgs["box"].BaseVertexLocation;
+	boxRitem->StartIndexLocation = mGeos->DrawArgs["box"].StartIndexLocation;
+	allRitems.push_back(std::move(boxRitem));
+
+	auto gridRitem = std::make_unique<RenderItem>();
+	gridRitem->world = MathHelper::Identity4x4();
+	gridRitem->objCBIndex = 1;//BOX常量数据（world矩阵）在objConstantBuffer索引1上
+	gridRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	gridRitem->IndexCount = mGeos->DrawArgs["grid"].IndexCount;
+	gridRitem->BaseVertexLocation = mGeos->DrawArgs["grid"].BaseVertexLocation;
+	gridRitem->StartIndexLocation = mGeos->DrawArgs["grid"].StartIndexLocation;
+	allRitems.push_back(std::move(gridRitem));
+
+	UINT fllowObjCBIndex = 2;//接下去的几何体常量数据在CB中的索引从2开始
+	//将圆柱和圆的实例模型存入渲染项中
+	for (int i = 0; i < 5; i++)
+	{
+		auto leftCylinderRitem = std::make_unique<RenderItem>();
+		auto rightCylinderRitem = std::make_unique<RenderItem>();
+		auto leftSphereRitem = std::make_unique<RenderItem>();
+		auto rightSphereRitem = std::make_unique<RenderItem>();
+
+		XMMATRIX leftCylWorld = XMMatrixTranslation(-5.0f, 1.5f, -10.0f + i * 5.0f);
+		XMMATRIX rightCylWorld = XMMatrixTranslation(+5.0f, 1.5f, -10.0f + i * 5.0f);
+		XMMATRIX leftSphereWorld = XMMatrixTranslation(-5.0f, 3.5f, -10.0f + i * 5.0f);
+		XMMATRIX rightSphereWorld = XMMatrixTranslation(+5.0f, 3.5f, -10.0f + i * 5.0f);
+		//左边5个圆柱
+		XMStoreFloat4x4(&(leftCylinderRitem->world), leftCylWorld);
+		//此处的索引随着循环不断加1（注意：这里是先赋值再++）
+		leftCylinderRitem->objCBIndex = fllowObjCBIndex++;
+		leftCylinderRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		leftCylinderRitem->IndexCount = mGeos->DrawArgs["cylinder"].IndexCount;
+		leftCylinderRitem->BaseVertexLocation = mGeos->DrawArgs["cylinder"].BaseVertexLocation;
+		leftCylinderRitem->StartIndexLocation = mGeos->DrawArgs["cylinder"].StartIndexLocation;
+		//右边5个圆柱
+		XMStoreFloat4x4(&(rightCylinderRitem->world), rightCylWorld);
+		rightCylinderRitem->objCBIndex = fllowObjCBIndex++;
+		rightCylinderRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		rightCylinderRitem->IndexCount = mGeos->DrawArgs["cylinder"].IndexCount;
+		rightCylinderRitem->BaseVertexLocation = mGeos->DrawArgs["cylinder"].BaseVertexLocation;
+		rightCylinderRitem->StartIndexLocation = mGeos->DrawArgs["cylinder"].StartIndexLocation;
+		//左边5个球
+		XMStoreFloat4x4(&(leftSphereRitem->world), leftSphereWorld);
+		leftSphereRitem->objCBIndex = fllowObjCBIndex++;
+		leftSphereRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		leftSphereRitem->IndexCount = mGeos->DrawArgs["sphere"].IndexCount;
+		leftSphereRitem->BaseVertexLocation = mGeos->DrawArgs["sphere"].BaseVertexLocation;
+		leftSphereRitem->StartIndexLocation = mGeos->DrawArgs["sphere"].StartIndexLocation;
+		//右边5个球
+		XMStoreFloat4x4(&(rightSphereRitem->world), rightSphereWorld);
+		rightSphereRitem->objCBIndex = fllowObjCBIndex++;
+		rightSphereRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		rightSphereRitem->IndexCount = mGeos->DrawArgs["sphere"].IndexCount;
+		rightSphereRitem->BaseVertexLocation = mGeos->DrawArgs["sphere"].BaseVertexLocation;
+		rightSphereRitem->StartIndexLocation = mGeos->DrawArgs["sphere"].StartIndexLocation;
+
+		allRitems.push_back(std::move(leftCylinderRitem));
+		allRitems.push_back(std::move(rightCylinderRitem));
+		allRitems.push_back(std::move(leftSphereRitem));
+		allRitems.push_back(std::move(rightSphereRitem));
+	}
+	for (auto& e : allRitems)
+		mOpaqueRitems.push_back(e.get());
+}
+
+void ShapesApp::DrawRenderItems()
+{
+	//遍历渲染项数组
+	for (size_t i = 0; i < mOpaqueRitems.size(); i++)
+	{
+		auto ritem = mOpaqueRitems[i];
+
+		mCommandList->IASetVertexBuffers(0, 1, &mGeos->VertexBufferView());
+		mCommandList->IASetIndexBuffer(&mGeos->IndexBufferView());
+		mCommandList->IASetPrimitiveTopology(ritem->primitiveType);
+
+		//设置根描述符表
+		UINT objCbvIndex = ritem->objCBIndex;
+		auto handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
+		handle.Offset(objCbvIndex, mCbvSrvUavDescriptorSize);
+		mCommandList->SetGraphicsRootDescriptorTable(0, //根参数的起始索引
+			handle);
+
+		//绘制顶点（通过索引缓冲区绘制）
+		mCommandList->DrawIndexedInstanced(ritem->IndexCount, //每个实例要绘制的索引数
+			1,	//实例化个数
+			ritem->StartIndexLocation,	//起始索引位置
+			ritem->BaseVertexLocation,	//子物体起始索引在全局索引中的位置
+			0);	//实例化的高级技术，暂时设置为0
+	}
 }
