@@ -153,6 +153,7 @@
     <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="InitDirect3DApp.cpp" />
     <ClCompile Include="MathHelper.cpp" />
+    <ClCompile Include="ShapesApp.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

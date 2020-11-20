@@ -27,13 +27,13 @@ struct Vertex
 //====================================================
 //主类
 //====================================================
-class BoxApp :public D3DApp
+class ShapesApp :public D3DApp
 {
 public:
-	BoxApp(HINSTANCE hInstance);
-	BoxApp(const BoxApp& rhs) = delete;
-	BoxApp& operator=(const BoxApp& rhs) = delete;
-	~BoxApp();
+	ShapesApp(HINSTANCE hInstance);
+	ShapesApp(const ShapesApp& rhs) = delete;
+	ShapesApp& operator=(const ShapesApp& rhs) = delete;
+	~ShapesApp();
 
 	virtual bool Initialize()override;
 
@@ -79,17 +79,17 @@ private:
 	POINT	mLastMousePos;
 };
 
-BoxApp::BoxApp(HINSTANCE hInstance)
+ShapesApp::ShapesApp(HINSTANCE hInstance)
 	:D3DApp(hInstance)
 {
 }
 
-BoxApp::~BoxApp()
+ShapesApp::~ShapesApp()
 {
 }
 
 //入口
-bool BoxApp::Initialize()
+bool ShapesApp::Initialize()
 {
 	if (!D3DApp::Initialize())
 		return false;
@@ -115,7 +115,7 @@ bool BoxApp::Initialize()
 	return true;
 }
 
-void BoxApp::Update(const GameTimer& gt)
+void ShapesApp::Update(const GameTimer& gt)
 {
 	float x = mRadius * sinf(mPhi) * cosf(mTheta);
 	float z = mRadius * sinf(mPhi) * sinf(mTheta);
@@ -137,7 +137,7 @@ void BoxApp::Update(const GameTimer& gt)
 	mObjectCB->CopyData(0, objConstants);
 }
 
-void BoxApp::Draw(const GameTimer& gt)
+void ShapesApp::Draw(const GameTimer& gt)
 {
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
 
@@ -192,7 +192,7 @@ void BoxApp::Draw(const GameTimer& gt)
 	FlushCommandQueue();
 }
 
-void BoxApp::OnResize()
+void ShapesApp::OnResize()
 {
 	D3DApp::OnResize();
 
@@ -200,19 +200,19 @@ void BoxApp::OnResize()
 	XMStoreFloat4x4(&mProj, P);
 }
 
-void BoxApp::OnMouseDown(WPARAM btnState, int x, int y)
+void ShapesApp::OnMouseDown(WPARAM btnState, int x, int y)
 {
 	mLastMousePos.x = x;
 	mLastMousePos.y = y;
 	SetCapture(mhMainWnd);
 }
 
-void BoxApp::OnMouseUp(WPARAM btnState, int x, int y)
+void ShapesApp::OnMouseUp(WPARAM btnState, int x, int y)
 {
 	ReleaseCapture();
 }
 
-void BoxApp::OnMouseMove(WPARAM btnState, int x, int y)
+void ShapesApp::OnMouseMove(WPARAM btnState, int x, int y)
 {
 	//如果在左键按下状态
 	if ((btnState & MK_LBUTTON) != 0)
@@ -242,7 +242,7 @@ void BoxApp::OnMouseMove(WPARAM btnState, int x, int y)
 	mLastMousePos.y = y;
 }
 
-LRESULT BoxApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT ShapesApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
@@ -351,33 +351,33 @@ LRESULT BoxApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd)
-//{
-//#if defined(DEBUG) | defined(_DEBUG)
-//	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-//#endif
-//
-//	try
-//	{
-//		BoxApp theApp(hInstance);
-//		if (!theApp.Initialize())
-//			return 0;
-//
-//		return theApp.Run();
-//	}
-//	catch (DxException& e)
-//	{
-//		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
-//		return 0;
-//	}
-//}
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd)
+{
+#if defined(DEBUG) | defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
+	try
+	{
+		ShapesApp theApp(hInstance);
+		if (!theApp.Initialize())
+			return 0;
+
+		return theApp.Run();
+	}
+	catch (DxException& e)
+	{
+		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
+		return 0;
+	}
+}
 
 /*
 	缓冲区想要绑定到流水线，需要借助缓冲区视图，而部分视图，需要储存在描述符堆中，如常量缓冲视图，DSV,RTV等
 	当然也有一部分视图是不需要描述符堆的，如顶点缓冲视图，索引缓冲视图
 	这里我们创建的描述符堆，主要是用于储存常量缓冲区视图的
 */
-void BoxApp::BuildDescriptorHeaps()
+void ShapesApp::BuildDescriptorHeaps()
 {
 	//描述 描述符堆
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
@@ -394,7 +394,7 @@ void BoxApp::BuildDescriptorHeaps()
 	);
 }
 
-void BoxApp::BuildConstantBuffers()
+void ShapesApp::BuildConstantBuffers()
 {
 	//创建常量缓冲区，在UploadBuffer类中定义了创建堆的过程
 	mObjectCB = std::make_unique<UploadBuffer<ObjectConstants>>(md3dDevice.Get(), 1, true);
@@ -415,7 +415,7 @@ void BoxApp::BuildConstantBuffers()
 		mCbvHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
-void BoxApp::BuildRootSignature()
+void ShapesApp::BuildRootSignature()
 {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[1];
 
@@ -450,7 +450,7 @@ void BoxApp::BuildRootSignature()
 	);
 }
 
-void BoxApp::BuildShadersAndInputLayout()
+void ShapesApp::BuildShadersAndInputLayout()
 {
 	HRESULT hr = S_OK;
 
@@ -464,7 +464,7 @@ void BoxApp::BuildShadersAndInputLayout()
 	};
 }
 
-void BoxApp::BuildBoxGeometry()
+void ShapesApp::BuildBoxGeometry()
 {
 	//默认
 	std::array<Vertex, 8> vertices =
@@ -532,7 +532,7 @@ void BoxApp::BuildBoxGeometry()
 
 }
 
-void BoxApp::BuildPSO()
+void ShapesApp::BuildPSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
