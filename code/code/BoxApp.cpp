@@ -139,6 +139,7 @@ void BoxApp::Update(const GameTimer& gt)
 
 void BoxApp::Draw(const GameTimer& gt)
 {
+
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
 
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), mPSO.Get()));
@@ -186,7 +187,11 @@ void BoxApp::Draw(const GameTimer& gt)
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
-	ThrowIfFailed(mSwapChain->Present(0, 0));
+	//ThrowIfFailed(mSwapChain->Present(0, 0));
+
+	HRESULT hr = mSwapChain->Present(0, 0);
+	ThrowIfFailed(hr);
+
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
 
 	FlushCommandQueue();
