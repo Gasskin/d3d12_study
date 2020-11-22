@@ -71,5 +71,8 @@
     <ClCompile Include="FrameResource.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="LandAndWaves.cpp">
+      <Filter>源文件\example</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

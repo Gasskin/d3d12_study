@@ -1,4 +1,4 @@
-ï»¿#include "d3dApp.h"
+#include "d3dApp.h"
 #include "UploadBuffer.h"
 #include "MathHelper.h"
 #include <WindowsX.h>
@@ -10,45 +10,45 @@ using namespace DirectX;
 using namespace DirectX::PackedVector;
 
 //====================================================
-//é¢å¤–ä¿¡æ¯
+//¶îÍâĞÅÏ¢
 //====================================================
 
-//å¸§èµ„æºæ•°é‡
+//Ö¡×ÊÔ´ÊıÁ¿
 const int gNumFrameResources = 3;
 
-//æ¸²æŸ“é¡¹
+//äÖÈ¾Ïî
 struct RenderItem
 {
 	RenderItem() = default;
 
-	//è¯¥å‡ ä½•ä½“çš„ä¸–ç•ŒçŸ©é˜µ
+	//¸Ã¼¸ºÎÌåµÄÊÀ½ç¾ØÕó
 	XMFLOAT4X4 world = MathHelper::Identity4x4();
 
-	//è¯¥å‡ ä½•ä½“çš„å¸¸é‡æ•°æ®åœ¨objConstantBufferä¸­çš„ç´¢å¼•
+	//¸Ã¼¸ºÎÌåµÄ³£Á¿Êı¾İÔÚobjConstantBufferÖĞµÄË÷Òı
 	UINT objCBIndex = -1;
 
-	//å¸§èµ„æºæ•°é‡
+	//Ö¡×ÊÔ´ÊıÁ¿
 	int NumFramesDirty = gNumFrameResources;
 
-	//è¯¥å‡ ä½•ä½“çš„å›¾å…ƒæ‹“æ‰‘ç±»å‹
+	//¸Ã¼¸ºÎÌåµÄÍ¼ÔªÍØÆËÀàĞÍ
 	D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	//è¯¥å‡ ä½•ä½“çš„ç»˜åˆ¶ä¸‰å‚æ•°
+	//¸Ã¼¸ºÎÌåµÄ»æÖÆÈı²ÎÊı
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	UINT BaseVertexLocation = 0;
 };
 
 //====================================================
-//ä¸»ç±»
+//Ö÷Àà
 //====================================================
-class ShapesApp :public D3DApp
+class LandAndWaves :public D3DApp
 {
 public:
-	ShapesApp(HINSTANCE hInstance);
-	ShapesApp(const ShapesApp& rhs) = delete;
-	ShapesApp& operator=(const ShapesApp& rhs) = delete;
-	~ShapesApp();
+	LandAndWaves(HINSTANCE hInstance);
+	LandAndWaves(const LandAndWaves& rhs) = delete;
+	LandAndWaves& operator=(const LandAndWaves& rhs) = delete;
+	~LandAndWaves();
 
 	virtual bool Initialize()override;
 
@@ -58,79 +58,79 @@ private:
 	virtual void	Draw(const GameTimer& gt)override;
 	virtual void	OnResize()override;
 private:
-	void BuildDescriptorHeaps();//åˆ›å»ºæè¿°ç¬¦å †
-	void BuildConstantBuffers();//åˆ›å»ºå¸¸é‡ç¼“å†²åŒºä¸è§†å›¾
-	void BuildRootSignature();//åˆ›å»ºæ ¹ç­¾å
-	void BuildShadersAndInputLayout();//åˆ›å»ºé¡¶ç‚¹è¾“å…¥å¸ƒå±€
-	void BuildGeometry();//æ„å»ºå‡ ä½•ä½“ï¼ˆé¡¶ç‚¹ä¸ç´¢å¼•ï¼‰
+	void BuildDescriptorHeaps();//´´½¨ÃèÊö·û¶Ñ
+	void BuildConstantBuffers();//´´½¨³£Á¿»º³åÇøÓëÊÓÍ¼
+	void BuildRootSignature();//´´½¨¸ùÇ©Ãû
+	void BuildShadersAndInputLayout();//´´½¨¶¥µãÊäÈë²¼¾Ö
+	void BuildGeometry();//¹¹½¨¼¸ºÎÌå£¨¶¥µãÓëË÷Òı£©
 
-	void BuildPSO_SOLID();//åˆ›å»ºæµæ°´çº¿å¯¹è±¡
-	void BuildPSO_WIREFRAME();//åˆ›å»ºæµæ°´çº¿å¯¹è±¡
+	void BuildPSO_SOLID();//´´½¨Á÷Ë®Ïß¶ÔÏó
+	void BuildPSO_WIREFRAME();//´´½¨Á÷Ë®Ïß¶ÔÏó
 
-	void BuildRenderItems();//æ¸²æŸ“é¡¹
+	void BuildRenderItems();//äÖÈ¾Ïî
 	void DrawRenderItems();
 
-	void BuildFrameResources();//å¸§èµ„æº
+	void BuildFrameResources();//Ö¡×ÊÔ´
 private:
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);
 	void OnMouseMove(WPARAM btnState, int x, int y);
 private:
-	ComPtr<ID3D12DescriptorHeap>					mCbvHeap = nullptr;//å¸¸é‡ç¼“å†²åŒº æè¿°ç¬¦å †
+	ComPtr<ID3D12DescriptorHeap>					mCbvHeap = nullptr;//³£Á¿»º³åÇø ÃèÊö·û¶Ñ
 
-	std::unique_ptr<UploadBuffer<ObjectConstants>>	objCB = nullptr;//MçŸ©é˜µå¸¸é‡
-	std::unique_ptr<UploadBuffer<PassConstants>>	passCB = nullptr;//VPçŸ©é˜µå¸¸é‡
+	std::unique_ptr<UploadBuffer<ObjectConstants>>	objCB = nullptr;//M¾ØÕó³£Á¿
+	std::unique_ptr<UploadBuffer<PassConstants>>	passCB = nullptr;//VP¾ØÕó³£Á¿
 
-	ComPtr<ID3D12RootSignature>						mRootSignature = nullptr;//æ ¹ç­¾å
+	ComPtr<ID3D12RootSignature>						mRootSignature = nullptr;//¸ùÇ©Ãû
 
-	ComPtr<ID3DBlob>								mvsByteCode = nullptr;//é¡¶ç‚¹ç€è‰²å™¨
-	ComPtr<ID3DBlob>								mpsByteCode = nullptr;//åƒç´ ç€è‰²å™¨
-	std::vector<D3D12_INPUT_ELEMENT_DESC>			mInputLayout;//è¾“å…¥å¸ƒå±€
+	ComPtr<ID3DBlob>								mvsByteCode = nullptr;//¶¥µã×ÅÉ«Æ÷
+	ComPtr<ID3DBlob>								mpsByteCode = nullptr;//ÏñËØ×ÅÉ«Æ÷
+	std::vector<D3D12_INPUT_ELEMENT_DESC>			mInputLayout;//ÊäÈë²¼¾Ö
 
-	std::unique_ptr<MeshGeometry>					mGeos = nullptr;//ç›’å­çš„é¡¶ç‚¹ä¸ç´¢å¼•ç¼“å†²
+	std::unique_ptr<MeshGeometry>					mGeos = nullptr;//ºĞ×ÓµÄ¶¥µãÓëË÷Òı»º³å
 
-	ComPtr<ID3D12PipelineState>						mPSO_SOLID = nullptr;//æµæ°´çº¿å¯¹è±¡,å®ä½“
-	ComPtr<ID3D12PipelineState>						mPSO_WIREFRAME = nullptr;//æµæ°´çº¿å¯¹è±¡,çº¿æ¡†
+	ComPtr<ID3D12PipelineState>						mPSO_SOLID = nullptr;//Á÷Ë®Ïß¶ÔÏó,ÊµÌå
+	ComPtr<ID3D12PipelineState>						mPSO_WIREFRAME = nullptr;//Á÷Ë®Ïß¶ÔÏó,Ïß¿ò
 
-	std::vector<std::unique_ptr<RenderItem>>		mAllRitems;//æš‚æ—¶ä¸èƒ½ç†è§£ä¸ºä»€ä¹ˆéœ€è¦ä¸¤ä¸ªvectoræ¥åˆ›å»ºæ¸²æŸ“é¡¹
+	std::vector<std::unique_ptr<RenderItem>>		mAllRitems;//ÔİÊ±²»ÄÜÀí½âÎªÊ²Ã´ĞèÒªÁ½¸övectorÀ´´´½¨äÖÈ¾Ïî
 	std::vector<RenderItem*>						mOpaqueRitems;
 
-	std::vector<std::unique_ptr<FrameResource>>		mFrameResources;//å¸§èµ„æº
-	FrameResource*									mCurrFrameResource = nullptr;
+	std::vector<std::unique_ptr<FrameResource>>		mFrameResources;//Ö¡×ÊÔ´
+	FrameResource* mCurrFrameResource = nullptr;
 	int												mCurrFrameResourceIndex = 0;
 private:
-	XMFLOAT4X4	mWorld = MathHelper::Identity4x4();//ä¸–ç•ŒçŸ©é˜µ
-	XMFLOAT4X4	mView = MathHelper::Identity4x4();//è§‚å¯ŸçŸ©é˜µ
-	XMFLOAT4X4	mProj = MathHelper::Identity4x4();//æŠ•å½±çŸ©é˜µ
+	XMFLOAT4X4	mWorld = MathHelper::Identity4x4();//ÊÀ½ç¾ØÕó
+	XMFLOAT4X4	mView = MathHelper::Identity4x4();//¹Û²ì¾ØÕó
+	XMFLOAT4X4	mProj = MathHelper::Identity4x4();//Í¶Ó°¾ØÕó
 
 	float		mTheta = 1.5f * XM_PI; //1.5pai
-	float		mPhi = XM_PIDIV4;//å››åˆ†ä¹‹pai
-	float		mRadius = 5.0f;//å¼§åº¦
+	float		mPhi = XM_PIDIV4;//ËÄ·ÖÖ®pai
+	float		mRadius = 5.0f;//»¡¶È
 private:
 	bool mEnableWireframe = false;
 private:
 	POINT	mLastMousePos;
 };
 
-ShapesApp::ShapesApp(HINSTANCE hInstance)
+LandAndWaves::LandAndWaves(HINSTANCE hInstance)
 	:D3DApp(hInstance)
 {
 }
 
-ShapesApp::~ShapesApp()
+LandAndWaves::~LandAndWaves()
 {
 }
 
-//å…¥å£
-bool ShapesApp::Initialize()
+//Èë¿Ú
+bool LandAndWaves::Initialize()
 {
 	if (!D3DApp::Initialize())
 		return false;
 
-	//é‡ç½®å‘½ä»¤åˆ—è¡¨ä¸å‘½ä»¤åˆ†é…å™¨
+	//ÖØÖÃÃüÁîÁĞ±íÓëÃüÁî·ÖÅäÆ÷
 	ThrowIfFailed(mDirectCmdListAlloc->Reset());
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
-	//åˆå§‹åŒ–
+	//³õÊ¼»¯
 	BuildGeometry();
 	BuildRenderItems();
 	BuildFrameResources();
@@ -140,17 +140,17 @@ bool ShapesApp::Initialize()
 	BuildShadersAndInputLayout();
 	BuildPSO_SOLID();
 	BuildPSO_WIREFRAME();
-	//å…³é—­å‘½ä»¤åˆ—è¡¨
+	//¹Ø±ÕÃüÁîÁĞ±í
 	ThrowIfFailed(mCommandList->Close());
-	//æ‰§è¡Œå‘½ä»¤
+	//Ö´ĞĞÃüÁî
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-	//å›´æ 
+	//Î§À¸
 	FlushCommandQueue();
 	return true;
 }
 
-void ShapesApp::Update(const GameTimer& gt)
+void LandAndWaves::Update(const GameTimer& gt)
 {
 	float x = mRadius * sinf(mPhi) * cosf(mTheta);
 	float z = mRadius * sinf(mPhi) * sinf(mTheta);
@@ -187,7 +187,7 @@ void ShapesApp::Update(const GameTimer& gt)
 			e->NumFramesDirty--;
 		}
 	}
-	
+
 	PassConstants passConstants;
 	XMMATRIX proj = XMLoadFloat4x4(&mProj);
 	XMMATRIX viewProj = XMMatrixMultiply(view, proj);
@@ -196,7 +196,7 @@ void ShapesApp::Update(const GameTimer& gt)
 	currPassCB->CopyData(0, passConstants);
 }
 
-void ShapesApp::Draw(const GameTimer& gt)
+void LandAndWaves::Draw(const GameTimer& gt)
 {
 	auto cmdListAlloc = mCurrFrameResource->CmdListAlloc;
 
@@ -210,7 +210,7 @@ void ShapesApp::Draw(const GameTimer& gt)
 	{
 		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSO_SOLID.Get()));
 	}
-	
+
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 
@@ -225,17 +225,17 @@ void ShapesApp::Draw(const GameTimer& gt)
 
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
-	//è®¾ç½®CBVæè¿°ç¬¦å †
+	//ÉèÖÃCBVÃèÊö·û¶Ñ
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-	//è®¾ç½®æ ¹ç­¾å
+	//ÉèÖÃ¸ùÇ©Ãû
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	int passCbvIndex = mAllRitems.size()*gNumFrameResources + mCurrFrameResourceIndex;
+	int passCbvIndex = mAllRitems.size() * gNumFrameResources + mCurrFrameResourceIndex;
 	auto handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
 	handle.Offset(passCbvIndex, mCbvSrvUavDescriptorSize);
 	mCommandList->SetGraphicsRootDescriptorTable(
-		1, //æ ¹å‚æ•°çš„èµ·å§‹ç´¢å¼•
+		1, //¸ù²ÎÊıµÄÆğÊ¼Ë÷Òı
 		handle);
 
 	DrawRenderItems();
@@ -253,12 +253,12 @@ void ShapesApp::Draw(const GameTimer& gt)
 	ThrowIfFailed(mSwapChain->Present(0, 0));
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
 
-	//å›´æ å®šç‚¹
+	//Î§À¸¶¨µã
 	mCurrFrameResource->Fence = ++mCurrentFence;
 	mCommandQueue->Signal(mFence.Get(), mCurrentFence);
 }
 
-void ShapesApp::OnResize()
+void LandAndWaves::OnResize()
 {
 	D3DApp::OnResize();
 
@@ -266,68 +266,68 @@ void ShapesApp::OnResize()
 	XMStoreFloat4x4(&mProj, P);
 }
 
-void ShapesApp::OnMouseDown(WPARAM btnState, int x, int y)
+void LandAndWaves::OnMouseDown(WPARAM btnState, int x, int y)
 {
 	mLastMousePos.x = x;
 	mLastMousePos.y = y;
 	SetCapture(mhMainWnd);
 }
 
-void ShapesApp::OnMouseUp(WPARAM btnState, int x, int y)
+void LandAndWaves::OnMouseUp(WPARAM btnState, int x, int y)
 {
 	ReleaseCapture();
 }
 
-void ShapesApp::OnMouseMove(WPARAM btnState, int x, int y)
+void LandAndWaves::OnMouseMove(WPARAM btnState, int x, int y)
 {
-	//å¦‚æœåœ¨å·¦é”®æŒ‰ä¸‹çŠ¶æ€
+	//Èç¹ûÔÚ×ó¼ü°´ÏÂ×´Ì¬
 	if ((btnState & MK_LBUTTON) != 0)
 	{
-		//å°†é¼ æ ‡çš„ç§»åŠ¨è·ç¦»æ¢ç®—æˆå¼§åº¦ï¼Œ0.25ä¸ºè°ƒèŠ‚é˜ˆå€¼
+		//½«Êó±êµÄÒÆ¶¯¾àÀë»»Ëã³É»¡¶È£¬0.25Îªµ÷½ÚãĞÖµ
 		float dx = XMConvertToRadians(0.25f * static_cast<float>(x - mLastMousePos.x));
 		float dy = XMConvertToRadians(0.25f * static_cast<float>(y - mLastMousePos.y));
-		//è®¡ç®—é¼ æ ‡æ²¡æœ‰æ¾å¼€å‰çš„ç´¯è®¡å¼§åº¦
-		mTheta += dx*2.f;
-		mPhi += dy*2.f;
-		//é™åˆ¶è§’åº¦phiçš„èŒƒå›´åœ¨ï¼ˆ0.1ï¼Œ Pi-0.1ï¼‰
+		//¼ÆËãÊó±êÃ»ÓĞËÉ¿ªÇ°µÄÀÛ¼Æ»¡¶È
+		mTheta += dx * 2.f;
+		mPhi += dy * 2.f;
+		//ÏŞÖÆ½Ç¶ÈphiµÄ·¶Î§ÔÚ£¨0.1£¬ Pi-0.1£©
 		mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
 	}
-	//å¦‚æœåœ¨å³é”®æŒ‰ä¸‹çŠ¶æ€
+	//Èç¹ûÔÚÓÒ¼ü°´ÏÂ×´Ì¬
 	else if ((btnState & MK_RBUTTON) != 0)
 	{
-		//å°†é¼ æ ‡çš„ç§»åŠ¨è·ç¦»æ¢ç®—æˆç¼©æ”¾å¤§å°ï¼Œ0.005ä¸ºè°ƒèŠ‚é˜ˆå€¼
+		//½«Êó±êµÄÒÆ¶¯¾àÀë»»Ëã³ÉËõ·Å´óĞ¡£¬0.005Îªµ÷½ÚãĞÖµ
 		float dx = 0.005f * static_cast<float>(x - mLastMousePos.x);
 		float dy = 0.005f * static_cast<float>(y - mLastMousePos.y);
-		//æ ¹æ®é¼ æ ‡è¾“å…¥æ›´æ–°æ‘„åƒæœºå¯è§†èŒƒå›´åŠå¾„
-		mRadius += (dx - dy)*4.f;
-		//é™åˆ¶å¯è§†èŒƒå›´åŠå¾„
+		//¸ù¾İÊó±êÊäÈë¸üĞÂÉãÏñ»ú¿ÉÊÓ·¶Î§°ë¾¶
+		mRadius += (dx - dy) * 4.f;
+		//ÏŞÖÆ¿ÉÊÓ·¶Î§°ë¾¶
 		mRadius = MathHelper::Clamp(mRadius, 3.0f, 15.0f);
 	}
-	//å°†å½“å‰é¼ æ ‡åæ ‡èµ‹å€¼ç»™â€œä¸Šä¸€æ¬¡é¼ æ ‡åæ ‡â€ï¼Œä¸ºä¸‹ä¸€æ¬¡é¼ æ ‡æ“ä½œæä¾›å…ˆå‰å€¼
+	//½«µ±Ç°Êó±ê×ø±ê¸³Öµ¸ø¡°ÉÏÒ»´ÎÊó±ê×ø±ê¡±£¬ÎªÏÂÒ»´ÎÊó±ê²Ù×÷Ìá¹©ÏÈÇ°Öµ
 	mLastMousePos.x = x;
 	mLastMousePos.y = y;
 }
 
-LRESULT ShapesApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT LandAndWaves::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
 	case WM_ACTIVATE:
 		if (LOWORD(wParam) == WA_INACTIVE)
 		{
-			OutputDebugString(L"å–æ¶ˆæ¿€æ´»çª—å£\n");
+			OutputDebugString(L"È¡Ïû¼¤»î´°¿Ú\n");
 			mAppPaused = true;
 			mTimer.Stop();
 		}
 		else
 		{
-			OutputDebugString(L"æ¿€æ´»çª—å£\n");
+			OutputDebugString(L"¼¤»î´°¿Ú\n");
 			mAppPaused = false;
 			mTimer.Start();
 		}
 		return 0;
 	case WM_SIZE:
-		OutputDebugString(L"æ”¹å˜çª—å£å¤§å° ");
+		OutputDebugString(L"¸Ä±ä´°¿Ú´óĞ¡ ");
 		mClientWidth = LOWORD(lParam);
 		mClientHeight = HIWORD(lParam);
 		if (md3dDevice)
@@ -362,10 +362,10 @@ LRESULT ShapesApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				else if (mResizing)
 				{
 					/*
-						æˆ‘ä»¬å¯ä»¥ä¸€ç›´è°ƒæ•´çª—å£å¤§å°ï¼Œä½†å¦‚æœåŒæ—¶ä¹Ÿä¸€ç›´é‡æ–°ç»˜åˆ¶ï¼Œé‚£æ˜¯å¾ˆæ²¡å¿…è¦çš„ï¼Œæˆ‘ä»¬åªä¼šåœ¨è°ƒæ•´å®Œä¹‹åï¼Œè¿›è¡Œä¸€æ¬¡é‡æ–°ç»˜åˆ¶
-						ä¸‹é¢è¿˜æœ‰ä¸¤ä¸ªcaseï¼Œä¸€ä¸ªæ˜¯å½“æˆ‘ä»¬å¼€å§‹è°ƒæ•´çª—å£å¤§å°æ—¶ï¼Œå¦ä¸€ä¸ªæ˜¯å½“æˆ‘ä»¬ç»“æŸè°ƒæ•´çª—å£å¤§å°æ—¶
-						æ‰€ä»¥å½“æˆ‘ä»¬å¼€å§‹è°ƒæ•´çª—å£å¤§å°æ—¶ï¼Œè®¾ç½®mResizingä¸ºtrueï¼Œè¿™æ ·ï¼Œå†WM_SIZEè¿™ä¸ªæ¶ˆæ¯ä¸­ï¼Œå°±ä¼šä¸€ç›´è¿›å…¥ç°åœ¨è¿™ä¸ªç©ºåˆ†æ”¯ï¼Œå•¥ä¹Ÿä¸ä¼šå¹²
-						ç­‰ç»˜åˆ¶ç»“æŸæ—¶ï¼Œæˆ‘ä»¬å†è®¾ç½®mResizingä¸ºfalseï¼Œè¿›è¡Œä¸€æ¬¡OnResize()
+						ÎÒÃÇ¿ÉÒÔÒ»Ö±µ÷Õû´°¿Ú´óĞ¡£¬µ«Èç¹ûÍ¬Ê±Ò²Ò»Ö±ÖØĞÂ»æÖÆ£¬ÄÇÊÇºÜÃ»±ØÒªµÄ£¬ÎÒÃÇÖ»»áÔÚµ÷ÕûÍêÖ®ºó£¬½øĞĞÒ»´ÎÖØĞÂ»æÖÆ
+						ÏÂÃæ»¹ÓĞÁ½¸öcase£¬Ò»¸öÊÇµ±ÎÒÃÇ¿ªÊ¼µ÷Õû´°¿Ú´óĞ¡Ê±£¬ÁíÒ»¸öÊÇµ±ÎÒÃÇ½áÊøµ÷Õû´°¿Ú´óĞ¡Ê±
+						ËùÒÔµ±ÎÒÃÇ¿ªÊ¼µ÷Õû´°¿Ú´óĞ¡Ê±£¬ÉèÖÃmResizingÎªtrue£¬ÕâÑù£¬ÔÙWM_SIZEÕâ¸öÏûÏ¢ÖĞ£¬¾Í»áÒ»Ö±½øÈëÏÖÔÚÕâ¸ö¿Õ·ÖÖ§£¬É¶Ò²²»»á¸É
+						µÈ»æÖÆ½áÊøÊ±£¬ÎÒÃÇÔÙÉèÖÃmResizingÎªfalse£¬½øĞĞÒ»´ÎOnResize()
 					*/
 				}
 				else
@@ -425,42 +425,42 @@ LRESULT ShapesApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd)
-//{
-//#if defined(DEBUG) | defined(_DEBUG)
-//	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-//#endif
-//
-//	try
-//	{
-//		ShapesApp theApp(hInstance);
-//		if (!theApp.Initialize())
-//			return 0;
-//		return theApp.Run();
-//	}
-//	catch (DxException& e)
-//	{
-//		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
-//		return 0;
-//	}
-//}
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int showCmd)
+{
+#if defined(DEBUG) | defined(_DEBUG)
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
+	try
+	{
+		LandAndWaves theApp(hInstance);
+		if (!theApp.Initialize())
+			return 0;
+		return theApp.Run();
+	}
+	catch (DxException& e)
+	{
+		MessageBox(nullptr, e.ToString().c_str(), L"HR Failed", MB_OK);
+		return 0;
+	}
+}
 
 /*
-	ç¼“å†²åŒºæƒ³è¦ç»‘å®šåˆ°æµæ°´çº¿ï¼Œéœ€è¦å€ŸåŠ©ç¼“å†²åŒºè§†å›¾ï¼Œè€Œéƒ¨åˆ†è§†å›¾ï¼Œéœ€è¦å‚¨å­˜åœ¨æè¿°ç¬¦å †ä¸­ï¼Œå¦‚å¸¸é‡ç¼“å†²è§†å›¾ï¼ŒDSV,RTVç­‰
-	å½“ç„¶ä¹Ÿæœ‰ä¸€éƒ¨åˆ†è§†å›¾æ˜¯ä¸éœ€è¦æè¿°ç¬¦å †çš„ï¼Œå¦‚é¡¶ç‚¹ç¼“å†²è§†å›¾ï¼Œç´¢å¼•ç¼“å†²è§†å›¾
-	è¿™é‡Œæˆ‘ä»¬åˆ›å»ºçš„æè¿°ç¬¦å †ï¼Œä¸»è¦æ˜¯ç”¨äºå‚¨å­˜å¸¸é‡ç¼“å†²åŒºè§†å›¾çš„
+	»º³åÇøÏëÒª°ó¶¨µ½Á÷Ë®Ïß£¬ĞèÒª½èÖú»º³åÇøÊÓÍ¼£¬¶ø²¿·ÖÊÓÍ¼£¬ĞèÒª´¢´æÔÚÃèÊö·û¶ÑÖĞ£¬Èç³£Á¿»º³åÊÓÍ¼£¬DSV,RTVµÈ
+	µ±È»Ò²ÓĞÒ»²¿·ÖÊÓÍ¼ÊÇ²»ĞèÒªÃèÊö·û¶ÑµÄ£¬Èç¶¥µã»º³åÊÓÍ¼£¬Ë÷Òı»º³åÊÓÍ¼
+	ÕâÀïÎÒÃÇ´´½¨µÄÃèÊö·û¶Ñ£¬Ö÷ÒªÊÇÓÃÓÚ´¢´æ³£Á¿»º³åÇøÊÓÍ¼µÄ
 */
-void ShapesApp::BuildDescriptorHeaps()
+void LandAndWaves::BuildDescriptorHeaps()
 {
 	UINT objectCount = (UINT)mOpaqueRitems.size();
-	//æè¿° æè¿°ç¬¦å †
+	//ÃèÊö ÃèÊö·û¶Ñ
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
-	cbvHeapDesc.NumDescriptors = (objectCount + 1) * gNumFrameResources;//æ¯ä¸€ä¸ªå †é‡Œæœ‰nä¸ªWçŸ©é˜µ+1ä¸ªVPçŸ©é˜µï¼Œ3ä¸ªå¸§èµ„æºï¼Œ3ä¸ªå †
+	cbvHeapDesc.NumDescriptors = (objectCount + 1) * gNumFrameResources;//Ã¿Ò»¸ö¶ÑÀïÓĞn¸öW¾ØÕó+1¸öVP¾ØÕó£¬3¸öÖ¡×ÊÔ´£¬3¸ö¶Ñ
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
 
-	//åˆ›å»ºæè¿°ç¬¦å †
+	//´´½¨ÃèÊö·û¶Ñ
 	ThrowIfFailed(
 		md3dDevice->CreateDescriptorHeap(
 			&cbvHeapDesc,
@@ -468,9 +468,9 @@ void ShapesApp::BuildDescriptorHeaps()
 	);
 }
 
-void ShapesApp::BuildConstantBuffers()
+void LandAndWaves::BuildConstantBuffers()
 {
-	//åˆ›å»ºMçŸ©é˜µå¸¸é‡ç¼“å†²åŒº
+	//´´½¨M¾ØÕó³£Á¿»º³åÇø
 	UINT objectCount = (UINT)mOpaqueRitems.size();
 	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
@@ -481,10 +481,10 @@ void ShapesApp::BuildConstantBuffers()
 		{
 			D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objectCB->GetGPUVirtualAddress();
 
-			//è§†å›¾åœ¨å¸¸é‡ç¼“å†²åŒºçš„ä½ç½®ï¼Œç¬¬å‡ ä¸ªç‰©ä½“å°±åç§»å‡ ä¸ªå¸¸é‡å¤§å°
+			//ÊÓÍ¼ÔÚ³£Á¿»º³åÇøµÄÎ»ÖÃ£¬µÚ¼¸¸öÎïÌå¾ÍÆ«ÒÆ¼¸¸ö³£Á¿´óĞ¡
 			cbAddress += i * objCBByteSize;
 
-			//è§†å›¾åœ¨æè¿°ç¬¦å †çš„ä½ç½®ï¼Œæ³¨æ„ç°åœ¨æœ‰6ä¸ªå¸¸é‡ç¼“å†²åŒºï¼ˆ3ä¸ªobj3ä¸ªpassï¼‰ï¼Œä½†åªæœ‰1ä¸ªæè¿°ç¬¦å †
+			//ÊÓÍ¼ÔÚÃèÊö·û¶ÑµÄÎ»ÖÃ£¬×¢ÒâÏÖÔÚÓĞ6¸ö³£Á¿»º³åÇø£¨3¸öobj3¸öpass£©£¬µ«Ö»ÓĞ1¸öÃèÊö·û¶Ñ
 			int heapIndex = frameIndex * objectCount + i;
 			auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
 			handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);
@@ -496,9 +496,9 @@ void ShapesApp::BuildConstantBuffers()
 			md3dDevice->CreateConstantBufferView(&cbvDesc, handle);
 		}
 	}
-	
 
-	//åˆ›å»ºVPçŸ©é˜µå¸¸é‡ç¼“å†²åŒº
+
+	//´´½¨VP¾ØÕó³£Á¿»º³åÇø
 
 	UINT passCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
 
@@ -507,38 +507,38 @@ void ShapesApp::BuildConstantBuffers()
 		auto passCB = mFrameResources[frameIndex]->PassCB->Resource();
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
 
-		//æè¿°ç¬¦å †ä¸­æœ€å3ä¸ªä½ç½®å‚¨å­˜3ä¸ªpass
+		//ÃèÊö·û¶ÑÖĞ×îºó3¸öÎ»ÖÃ´¢´æ3¸öpass
 		int heapIndex = objectCount * gNumFrameResources + frameIndex;
 		auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
 		handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);
 
 		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-		cbvDesc.BufferLocation = cbAddress;//passè§†å›¾åœ¨ç¼“å†²åŒºä¸­çš„ä½ç½®ä¸åç§»ï¼Œå› ä¸ºæ¯ä¸ªpassç¼“å†²åŒºåªæœ‰1ä¸ªæ•°æ®
+		cbvDesc.BufferLocation = cbAddress;//passÊÓÍ¼ÔÚ»º³åÇøÖĞµÄÎ»ÖÃ²»Æ«ÒÆ£¬ÒòÎªÃ¿¸öpass»º³åÇøÖ»ÓĞ1¸öÊı¾İ
 		cbvDesc.SizeInBytes = passCBByteSize;
 
 		md3dDevice->CreateConstantBufferView(&cbvDesc, handle);
 	}
 }
 
-void ShapesApp::BuildRootSignature()
+void LandAndWaves::BuildRootSignature()
 {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
 
-	//åˆ›å»ºç”±å•ä¸ªCBVæ‰€ç»„æˆçš„æè¿°ç¬¦è¡¨
+	//´´½¨ÓÉµ¥¸öCBVËù×é³ÉµÄÃèÊö·û±í
 	CD3DX12_DESCRIPTOR_RANGE cbvTable0;
 	cbvTable0.Init(
-		D3D12_DESCRIPTOR_RANGE_TYPE_CBV, //æè¿°ç¬¦ç±»å‹
-		1, //æè¿°ç¬¦æ•°é‡
-		0);//æè¿°ç¬¦æ‰€ç»‘å®šçš„å¯„å­˜å™¨æ§½å·
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV, //ÃèÊö·ûÀàĞÍ
+		1, //ÃèÊö·ûÊıÁ¿
+		0);//ÃèÊö·ûËù°ó¶¨µÄ¼Ä´æÆ÷²ÛºÅ
 	CD3DX12_DESCRIPTOR_RANGE cbvTable1;
 	cbvTable1.Init(
-		D3D12_DESCRIPTOR_RANGE_TYPE_CBV, //æè¿°ç¬¦ç±»å‹
-		1, //æè¿°ç¬¦æ•°é‡
-		1);//æè¿°ç¬¦æ‰€ç»‘å®šçš„å¯„å­˜å™¨æ§½å·
+		D3D12_DESCRIPTOR_RANGE_TYPE_CBV, //ÃèÊö·ûÀàĞÍ
+		1, //ÃèÊö·ûÊıÁ¿
+		1);//ÃèÊö·ûËù°ó¶¨µÄ¼Ä´æÆ÷²ÛºÅ
 	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable0);
 	slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable1);
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, //æ ¹å‚æ•°æ•°é‡ä¿®æ”¹ä¸º2
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, //¸ù²ÎÊıÊıÁ¿ĞŞ¸ÄÎª2
 		slotRootParameter, 0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
@@ -566,7 +566,7 @@ void ShapesApp::BuildRootSignature()
 	);
 }
 
-void ShapesApp::BuildShadersAndInputLayout()
+void LandAndWaves::BuildShadersAndInputLayout()
 {
 	HRESULT hr = S_OK;
 
@@ -580,28 +580,28 @@ void ShapesApp::BuildShadersAndInputLayout()
 	};
 }
 
-void ShapesApp::BuildGeometry()
+void LandAndWaves::BuildGeometry()
 {
-	//è¿™ä¸€æ­¥æ˜¯åˆ›å»ºé¡¶ç‚¹ç¼“å†²ä¸ç´¢å¼•ç¼“å†²
+	//ÕâÒ»²½ÊÇ´´½¨¶¥µã»º³åÓëË÷Òı»º³å
 	GeometryGenerator proceGeo;
-	GeometryGenerator::MeshData box = proceGeo.CreateBox(1.5f, 0.5f, 1.5f, 3);//åˆ›å»ºç«‹æ–¹ä½“
-	GeometryGenerator::MeshData grid = proceGeo.CreateGrid(20.0f, 30.0f, 60, 40);//åˆ›å»ºå¹³é¢
-	GeometryGenerator::MeshData sphere = proceGeo.CreateSphere(0.5f, 20, 20);//åˆ›å»ºçƒä½“
-	GeometryGenerator::MeshData cylinder = proceGeo.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);//åˆ›å»ºç«‹æ–¹ä½“
+	GeometryGenerator::MeshData box = proceGeo.CreateBox(1.5f, 0.5f, 1.5f, 3);//´´½¨Á¢·½Ìå
+	GeometryGenerator::MeshData grid = proceGeo.CreateGrid(20.0f, 30.0f, 60, 40);//´´½¨Æ½Ãæ
+	GeometryGenerator::MeshData sphere = proceGeo.CreateSphere(0.5f, 20, 20);//´´½¨ÇòÌå
+	GeometryGenerator::MeshData cylinder = proceGeo.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);//´´½¨Á¢·½Ìå
 
-	//è®¡ç®—å•ä¸ªå‡ ä½•ä½“é¡¶ç‚¹åœ¨æ€»é¡¶ç‚¹æ•°ç»„ä¸­çš„åç§»é‡,é¡ºåºä¸ºï¼šboxã€gridã€sphereã€cylinder
+	//¼ÆËãµ¥¸ö¼¸ºÎÌå¶¥µãÔÚ×Ü¶¥µãÊı×éÖĞµÄÆ«ÒÆÁ¿,Ë³ĞòÎª£ºbox¡¢grid¡¢sphere¡¢cylinder
 	UINT boxVertexOffset = 0;
 	UINT gridVertexOffset = (UINT)box.Vertices.size();
 	UINT sphereVertexOffset = (UINT)grid.Vertices.size() + gridVertexOffset;
 	UINT cylinderVertexOffset = (UINT)sphere.Vertices.size() + sphereVertexOffset;
 
-	//è®¡ç®—å•ä¸ªå‡ ä½•ä½“ç´¢å¼•åœ¨æ€»ç´¢å¼•æ•°ç»„ä¸­çš„åç§»é‡,é¡ºåºä¸ºï¼šboxã€gridã€sphereã€cylinder
+	//¼ÆËãµ¥¸ö¼¸ºÎÌåË÷ÒıÔÚ×ÜË÷ÒıÊı×éÖĞµÄÆ«ÒÆÁ¿,Ë³ĞòÎª£ºbox¡¢grid¡¢sphere¡¢cylinder
 	UINT boxIndexOffset = 0;
 	UINT gridIndexOffset = (UINT)box.Indices32.size();
 	UINT sphereIndexOffset = (UINT)grid.Indices32.size() + gridIndexOffset;
 	UINT cylinderIndexOffset = (UINT)sphere.Indices32.size() + sphereIndexOffset;
 
-	//ç”¨SubmeshGeometryç»“æ„ä½“è®°å½•ä¸Šé¢è·å¾—çš„åç§»æ•°æ®
+	//ÓÃSubmeshGeometry½á¹¹Ìå¼ÇÂ¼ÉÏÃæ»ñµÃµÄÆ«ÒÆÊı¾İ
 	SubmeshGeometry boxSubmesh;
 	boxSubmesh.IndexCount = (UINT)box.Indices32.size();
 	boxSubmesh.BaseVertexLocation = boxVertexOffset;
@@ -622,16 +622,16 @@ void ShapesApp::BuildGeometry()
 	cylinderSubmesh.BaseVertexLocation = cylinderVertexOffset;
 	cylinderSubmesh.StartIndexLocation = cylinderIndexOffset;
 
-	//ç„¶åæˆ‘ä»¬åˆ›å»ºä¸€ä¸ªæ€»çš„é¡¶ç‚¹ç¼“å­˜verticesï¼Œå¹¶å°†4ä¸ªå­ç‰©ä½“çš„é¡¶ç‚¹æ•°æ®å­˜å…¥å…¶ä¸­
+	//È»ºóÎÒÃÇ´´½¨Ò»¸ö×ÜµÄ¶¥µã»º´ævertices£¬²¢½«4¸ö×ÓÎïÌåµÄ¶¥µãÊı¾İ´æÈëÆäÖĞ
 	size_t totalVertexCount = box.Vertices.size() + grid.Vertices.size() + sphere.Vertices.size() + cylinder.Vertices.size();
-	std::vector<Vertex> vertices(totalVertexCount);	//ç»™å®šé¡¶ç‚¹æ•°ç»„å¤§å°
+	std::vector<Vertex> vertices(totalVertexCount);	//¸ø¶¨¶¥µãÊı×é´óĞ¡
 	int k = 0;
 	for (int i = 0; i < box.Vertices.size(); i++, k++)
 	{
-		//æ­¤å¤„å®¹æ˜“æ··æ·†ï¼Œvertices[k]æ˜¯æˆ‘ä»¬åˆ›å»ºçš„é¡¶ç‚¹ç»“æ„ä½“ï¼Œå®ƒæœ‰Poså’ŒColorä¸¤ä¸ªå±æ€§
-		//è€Œbox.Vertices[i]æ˜¯ç”¨è¾…åŠ©ç»“æ„ä½“GeometryGeneratoråˆ›å»ºçš„ï¼Œå®ƒæœ‰æ˜¯ä¸€ä¸ªé¡¶ç‚¹ç»“æ„ä½“ï¼Œé‡Œé¢æœ‰å¾ˆå¤šå±æ€§ï¼Œæˆ‘ä»¬ç”¨å®ƒçš„Positionæ¥åˆå§‹åŒ–æˆ‘ä»¬å®šä¹‰çš„é¡¶ç‚¹
+		//´Ë´¦ÈİÒ×»ìÏı£¬vertices[k]ÊÇÎÒÃÇ´´½¨µÄ¶¥µã½á¹¹Ìå£¬ËüÓĞPosºÍColorÁ½¸öÊôĞÔ
+		//¶øbox.Vertices[i]ÊÇÓÃ¸¨Öú½á¹¹ÌåGeometryGenerator´´½¨µÄ£¬ËüÓĞÊÇÒ»¸ö¶¥µã½á¹¹Ìå£¬ÀïÃæÓĞºÜ¶àÊôĞÔ£¬ÎÒÃÇÓÃËüµÄPositionÀ´³õÊ¼»¯ÎÒÃÇ¶¨ÒåµÄ¶¥µã
 		vertices[k].Pos = box.Vertices[i].Position;
-		vertices[k].Color = XMFLOAT4(DirectX::Colors::Yellow);//ä¸è¿‡box.Vertices[i]é‡Œæ²¡æœ‰é¢œè‰²å±æ€§ï¼Œæ‰€ä»¥æˆ‘ä»¬è‡ªå®šä¹‰äº†
+		vertices[k].Color = XMFLOAT4(DirectX::Colors::Yellow);//²»¹ıbox.Vertices[i]ÀïÃ»ÓĞÑÕÉ«ÊôĞÔ£¬ËùÒÔÎÒÃÇ×Ô¶¨ÒåÁË
 	}
 	for (int i = 0; i < grid.Vertices.size(); i++, k++)
 	{
@@ -648,18 +648,18 @@ void ShapesApp::BuildGeometry()
 		vertices[k].Pos = cylinder.Vertices[i].Position;
 		vertices[k].Color = XMFLOAT4(DirectX::Colors::Blue);
 	}
-	//åŒç†æˆ‘ä»¬åˆ›å»ºä¸€ä¸ªæ€»çš„ç´¢å¼•ç¼“å­˜indices
+	//Í¬ÀíÎÒÃÇ´´½¨Ò»¸ö×ÜµÄË÷Òı»º´æindices
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), box.GetIndices16().begin(), box.GetIndices16().end());
 	indices.insert(indices.end(), grid.GetIndices16().begin(), grid.GetIndices16().end());
 	indices.insert(indices.end(), sphere.GetIndices16().begin(), sphere.GetIndices16().end());
 	indices.insert(indices.end(), cylinder.GetIndices16().begin(), cylinder.GetIndices16().end());
 
-	//è®¡ç®—å‡ºé¡¶ç‚¹ç¼“å†²ä¸ç´¢å¼•ç¼“å†²çš„å¤§å°
+	//¼ÆËã³ö¶¥µã»º³åÓëË÷Òı»º³åµÄ´óĞ¡
 	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
-	//åˆ›å»ºç¼“å†²åŒº
+	//´´½¨»º³åÇø
 	mGeos = std::make_unique<MeshGeometry>();
 	mGeos->Name = "shapeGeo";
 
@@ -680,7 +680,7 @@ void ShapesApp::BuildGeometry()
 	mGeos->DrawArgs["cylinder"] = cylinderSubmesh;
 }
 
-void ShapesApp::BuildPSO_SOLID()
+void LandAndWaves::BuildPSO_SOLID()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -711,7 +711,7 @@ void ShapesApp::BuildPSO_SOLID()
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO_SOLID)));
 }
 
-void ShapesApp::BuildPSO_WIREFRAME()
+void LandAndWaves::BuildPSO_WIREFRAME()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -742,11 +742,11 @@ void ShapesApp::BuildPSO_WIREFRAME()
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO_WIREFRAME)));
 }
 
-void ShapesApp::BuildRenderItems()
+void LandAndWaves::BuildRenderItems()
 {
 	auto boxRitem = std::make_unique<RenderItem>();
 	XMStoreFloat4x4(&(boxRitem->world), XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f));
-	boxRitem->objCBIndex = 0;//BOXå¸¸é‡æ•°æ®ï¼ˆworldçŸ©é˜µï¼‰åœ¨objConstantBufferç´¢å¼•0ä¸Š
+	boxRitem->objCBIndex = 0;//BOX³£Á¿Êı¾İ£¨world¾ØÕó£©ÔÚobjConstantBufferË÷Òı0ÉÏ
 	boxRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	boxRitem->IndexCount = mGeos->DrawArgs["box"].IndexCount;
 	boxRitem->BaseVertexLocation = mGeos->DrawArgs["box"].BaseVertexLocation;
@@ -755,15 +755,15 @@ void ShapesApp::BuildRenderItems()
 
 	auto gridRitem = std::make_unique<RenderItem>();
 	gridRitem->world = MathHelper::Identity4x4();
-	gridRitem->objCBIndex = 1;//BOXå¸¸é‡æ•°æ®ï¼ˆworldçŸ©é˜µï¼‰åœ¨objConstantBufferç´¢å¼•1ä¸Š
+	gridRitem->objCBIndex = 1;//BOX³£Á¿Êı¾İ£¨world¾ØÕó£©ÔÚobjConstantBufferË÷Òı1ÉÏ
 	gridRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	gridRitem->IndexCount = mGeos->DrawArgs["grid"].IndexCount;
 	gridRitem->BaseVertexLocation = mGeos->DrawArgs["grid"].BaseVertexLocation;
 	gridRitem->StartIndexLocation = mGeos->DrawArgs["grid"].StartIndexLocation;
 	mAllRitems.push_back(std::move(gridRitem));
 
-	UINT fllowObjCBIndex = 2;//æ¥ä¸‹å»çš„å‡ ä½•ä½“å¸¸é‡æ•°æ®åœ¨CBä¸­çš„ç´¢å¼•ä»2å¼€å§‹
-	//å°†åœ†æŸ±å’Œåœ†çš„å®ä¾‹æ¨¡å‹å­˜å…¥æ¸²æŸ“é¡¹ä¸­
+	UINT fllowObjCBIndex = 2;//½ÓÏÂÈ¥µÄ¼¸ºÎÌå³£Á¿Êı¾İÔÚCBÖĞµÄË÷Òı´Ó2¿ªÊ¼
+	//½«Ô²ÖùºÍÔ²µÄÊµÀıÄ£ĞÍ´æÈëäÖÈ¾ÏîÖĞ
 	for (int i = 0; i < 5; i++)
 	{
 		auto leftCylinderRitem = std::make_unique<RenderItem>();
@@ -775,29 +775,29 @@ void ShapesApp::BuildRenderItems()
 		XMMATRIX rightCylWorld = XMMatrixTranslation(+5.0f, 1.5f, -10.0f + i * 5.0f);
 		XMMATRIX leftSphereWorld = XMMatrixTranslation(-5.0f, 3.5f, -10.0f + i * 5.0f);
 		XMMATRIX rightSphereWorld = XMMatrixTranslation(+5.0f, 3.5f, -10.0f + i * 5.0f);
-		//å·¦è¾¹5ä¸ªåœ†æŸ±
+		//×ó±ß5¸öÔ²Öù
 		XMStoreFloat4x4(&(leftCylinderRitem->world), leftCylWorld);
-		//æ­¤å¤„çš„ç´¢å¼•éšç€å¾ªç¯ä¸æ–­åŠ 1ï¼ˆæ³¨æ„ï¼šè¿™é‡Œæ˜¯å…ˆèµ‹å€¼å†++ï¼‰
+		//´Ë´¦µÄË÷ÒıËæ×ÅÑ­»·²»¶Ï¼Ó1£¨×¢Òâ£ºÕâÀïÊÇÏÈ¸³ÖµÔÙ++£©
 		leftCylinderRitem->objCBIndex = fllowObjCBIndex++;
 		leftCylinderRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		leftCylinderRitem->IndexCount = mGeos->DrawArgs["cylinder"].IndexCount;
 		leftCylinderRitem->BaseVertexLocation = mGeos->DrawArgs["cylinder"].BaseVertexLocation;
 		leftCylinderRitem->StartIndexLocation = mGeos->DrawArgs["cylinder"].StartIndexLocation;
-		//å³è¾¹5ä¸ªåœ†æŸ±
+		//ÓÒ±ß5¸öÔ²Öù
 		XMStoreFloat4x4(&(rightCylinderRitem->world), rightCylWorld);
 		rightCylinderRitem->objCBIndex = fllowObjCBIndex++;
 		rightCylinderRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		rightCylinderRitem->IndexCount = mGeos->DrawArgs["cylinder"].IndexCount;
 		rightCylinderRitem->BaseVertexLocation = mGeos->DrawArgs["cylinder"].BaseVertexLocation;
 		rightCylinderRitem->StartIndexLocation = mGeos->DrawArgs["cylinder"].StartIndexLocation;
-		//å·¦è¾¹5ä¸ªçƒ
+		//×ó±ß5¸öÇò
 		XMStoreFloat4x4(&(leftSphereRitem->world), leftSphereWorld);
 		leftSphereRitem->objCBIndex = fllowObjCBIndex++;
 		leftSphereRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		leftSphereRitem->IndexCount = mGeos->DrawArgs["sphere"].IndexCount;
 		leftSphereRitem->BaseVertexLocation = mGeos->DrawArgs["sphere"].BaseVertexLocation;
 		leftSphereRitem->StartIndexLocation = mGeos->DrawArgs["sphere"].StartIndexLocation;
-		//å³è¾¹5ä¸ªçƒ
+		//ÓÒ±ß5¸öÇò
 		XMStoreFloat4x4(&(rightSphereRitem->world), rightSphereWorld);
 		rightSphereRitem->objCBIndex = fllowObjCBIndex++;
 		rightSphereRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -814,9 +814,9 @@ void ShapesApp::BuildRenderItems()
 		mOpaqueRitems.push_back(e.get());
 }
 
-void ShapesApp::DrawRenderItems()
+void LandAndWaves::DrawRenderItems()
 {
-	//éå†æ¸²æŸ“é¡¹æ•°ç»„
+	//±éÀúäÖÈ¾ÏîÊı×é
 	for (size_t i = 0; i < mOpaqueRitems.size(); i++)
 	{
 		auto ritem = mOpaqueRitems[i];
@@ -825,23 +825,23 @@ void ShapesApp::DrawRenderItems()
 		mCommandList->IASetIndexBuffer(&mGeos->IndexBufferView());
 		mCommandList->IASetPrimitiveTopology(ritem->primitiveType);
 
-		//è®¾ç½®æ ¹æè¿°ç¬¦è¡¨1
+		//ÉèÖÃ¸ùÃèÊö·û±í1
 		UINT objCbvIndex = mCurrFrameResourceIndex * (UINT)mOpaqueRitems.size() + ritem->objCBIndex;;
 		auto handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
 		handle.Offset(objCbvIndex, mCbvSrvUavDescriptorSize);
-		mCommandList->SetGraphicsRootDescriptorTable(0, //æ ¹å‚æ•°çš„èµ·å§‹ç´¢å¼•
+		mCommandList->SetGraphicsRootDescriptorTable(0, //¸ù²ÎÊıµÄÆğÊ¼Ë÷Òı
 			handle);
 
-		//ç»˜åˆ¶é¡¶ç‚¹ï¼ˆé€šè¿‡ç´¢å¼•ç¼“å†²åŒºç»˜åˆ¶ï¼‰
-		mCommandList->DrawIndexedInstanced(ritem->IndexCount, //æ¯ä¸ªå®ä¾‹è¦ç»˜åˆ¶çš„ç´¢å¼•æ•°
-			1,	//å®ä¾‹åŒ–ä¸ªæ•°
-			ritem->StartIndexLocation,	//èµ·å§‹ç´¢å¼•ä½ç½®
-			ritem->BaseVertexLocation,	//å­ç‰©ä½“èµ·å§‹ç´¢å¼•åœ¨å…¨å±€ç´¢å¼•ä¸­çš„ä½ç½®
-			0);	//å®ä¾‹åŒ–çš„é«˜çº§æŠ€æœ¯ï¼Œæš‚æ—¶è®¾ç½®ä¸º0
+		//»æÖÆ¶¥µã£¨Í¨¹ıË÷Òı»º³åÇø»æÖÆ£©
+		mCommandList->DrawIndexedInstanced(ritem->IndexCount, //Ã¿¸öÊµÀıÒª»æÖÆµÄË÷ÒıÊı
+			1,	//ÊµÀı»¯¸öÊı
+			ritem->StartIndexLocation,	//ÆğÊ¼Ë÷ÒıÎ»ÖÃ
+			ritem->BaseVertexLocation,	//×ÓÎïÌåÆğÊ¼Ë÷ÒıÔÚÈ«¾ÖË÷ÒıÖĞµÄÎ»ÖÃ
+			0);	//ÊµÀı»¯µÄ¸ß¼¶¼¼Êõ£¬ÔİÊ±ÉèÖÃÎª0
 	}
 }
 
-void ShapesApp::BuildFrameResources()
+void LandAndWaves::BuildFrameResources()
 {
 	for (int i = 0; i < gNumFrameResources; ++i)
 	{
