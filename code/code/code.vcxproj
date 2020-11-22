@@ -156,7 +156,7 @@
     <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="InitDirect3DApp.cpp" />
-    <ClCompile Include="LandAndWaves.cpp" />
+    <ClCompile Include="LandAndWavesApp.cpp" />
     <ClCompile Include="MathHelper.cpp" />
     <ClCompile Include="ShapesApp.cpp" />
   </ItemGroup>
