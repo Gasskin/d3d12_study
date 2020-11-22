@@ -519,10 +519,10 @@ void LandAndWavesApp::BuildGeometry()
 	GeometryGenerator proceGeo;
 	GeometryGenerator::MeshData grid = proceGeo.CreateGrid(160.0f, 160.0f, 50, 50);//创建平面
 
-	SubmeshGeometry gridSubmesh;
-	gridSubmesh.IndexCount = (UINT)grid.Indices32.size();
-	gridSubmesh.BaseVertexLocation = 0;
-	gridSubmesh.StartIndexLocation = 0;
+	SubmeshGeometry LandSubmesh;
+	LandSubmesh.IndexCount = (UINT)grid.Indices32.size();
+	LandSubmesh.BaseVertexLocation = 0;
+	LandSubmesh.StartIndexLocation = 0;
 
 	//创建顶点缓存
 	size_t VertexCount = grid.Vertices.size();
@@ -576,7 +576,7 @@ void LandAndWavesApp::BuildGeometry()
 	mGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
 	mGeo->IndexBufferByteSize = ibByteSize;
 
-	mGeo->DrawArgs["grid"] = gridSubmesh;
+	mGeo->DrawArgs["grid"] = LandSubmesh;
 
 	mGeometries["landGeo"] = std::move(mGeo);
 
@@ -659,18 +659,18 @@ void LandAndWavesApp::BuildRenderItems()
 	mWavesRitem = wavesRitem.get();
 
 
-	auto gridRitem = std::make_unique<RenderItem>();
-	gridRitem->world = MathHelper::Identity4x4();
-	gridRitem->objCBIndex = 1;
-	gridRitem->geo = mGeometries["landGeo"].get();
-	gridRitem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	gridRitem->IndexCount = gridRitem->geo->DrawArgs["grid"].IndexCount;
-	gridRitem->StartIndexLocation = gridRitem->geo->DrawArgs["grid"].StartIndexLocation;
-	gridRitem->BaseVertexLocation = gridRitem->geo->DrawArgs["grid"].BaseVertexLocation;
+	auto landRitem = std::make_unique<RenderItem>();
+	landRitem->world = MathHelper::Identity4x4();
+	landRitem->objCBIndex = 1;
+	landRitem->geo = mGeometries["landGeo"].get();
+	landRitem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	landRitem->IndexCount = landRitem->geo->DrawArgs["grid"].IndexCount;
+	landRitem->StartIndexLocation = landRitem->geo->DrawArgs["grid"].StartIndexLocation;
+	landRitem->BaseVertexLocation = landRitem->geo->DrawArgs["grid"].BaseVertexLocation;
 
 
 	mAllRitems.push_back(std::move(wavesRitem));
-	mAllRitems.push_back(std::move(gridRitem));
+	mAllRitems.push_back(std::move(landRitem));
 
 	for (auto& e : mAllRitems)
 		mOpaqueRitems.push_back(e.get());
