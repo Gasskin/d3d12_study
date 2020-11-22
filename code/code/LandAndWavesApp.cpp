@@ -4,6 +4,7 @@
 #include <WindowsX.h>
 #include "GeometryGenerator.h"
 #include "FrameResource.h"
+#include "Waves.h"
 
 using Microsoft::WRL::ComPtr;
 using namespace DirectX;
@@ -37,6 +38,8 @@ struct RenderItem
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	UINT BaseVertexLocation = 0;
+
+	MeshGeometry* geo = nullptr;
 };
 
 //====================================================
@@ -73,33 +76,35 @@ private:
 	void BuildFrameResources();//帧资源
 
 	float GetHillsHeight(float x,float z);
+	void BuildWavesGeometryBuffers();
+	void UpdateWaves(const GameTimer& gt);
 private:
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);
 	void OnMouseMove(WPARAM btnState, int x, int y);
 private:
-	ComPtr<ID3D12DescriptorHeap>					mCbvHeap = nullptr;//常量缓冲区 描述符堆
+	ComPtr<ID3D12DescriptorHeap>									mCbvHeap = nullptr;//常量缓冲区 描述符堆
 
-	std::unique_ptr<UploadBuffer<ObjectConstants>>	objCB = nullptr;//M矩阵常量
-	std::unique_ptr<UploadBuffer<PassConstants>>	passCB = nullptr;//VP矩阵常量
+	ComPtr<ID3D12RootSignature>										mRootSignature = nullptr;//根签名
 
-	ComPtr<ID3D12RootSignature>						mRootSignature = nullptr;//根签名
+	ComPtr<ID3DBlob>												mvsByteCode = nullptr;//顶点着色器
+	ComPtr<ID3DBlob>												mpsByteCode = nullptr;//像素着色器
+	std::vector<D3D12_INPUT_ELEMENT_DESC>							mInputLayout;//输入布局
 
-	ComPtr<ID3DBlob>								mvsByteCode = nullptr;//顶点着色器
-	ComPtr<ID3DBlob>								mpsByteCode = nullptr;//像素着色器
-	std::vector<D3D12_INPUT_ELEMENT_DESC>			mInputLayout;//输入布局
+	ComPtr<ID3D12PipelineState>										mPSO_SOLID = nullptr;//流水线对象,实体
+	ComPtr<ID3D12PipelineState>										mPSO_WIREFRAME = nullptr;//流水线对象,线框
 
-	std::unique_ptr<MeshGeometry>					mGeos = nullptr;//盒子的顶点与索引缓冲
+	std::vector<std::unique_ptr<RenderItem>>						mAllRitems;//暂时不能理解为什么需要两个vector来创建渲染项
+	std::vector<RenderItem*>										mOpaqueRitems;
 
-	ComPtr<ID3D12PipelineState>						mPSO_SOLID = nullptr;//流水线对象,实体
-	ComPtr<ID3D12PipelineState>						mPSO_WIREFRAME = nullptr;//流水线对象,线框
-
-	std::vector<std::unique_ptr<RenderItem>>		mAllRitems;//暂时不能理解为什么需要两个vector来创建渲染项
-	std::vector<RenderItem*>						mOpaqueRitems;
-
-	std::vector<std::unique_ptr<FrameResource>>		mFrameResources;//帧资源
+	std::vector<std::unique_ptr<FrameResource>>						mFrameResources;//帧资源
 	FrameResource* mCurrFrameResource = nullptr;
-	int												mCurrFrameResourceIndex = 0;
+	int																mCurrFrameResourceIndex = 0;
+
+	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>>	mGeometries;//所有物体的顶点与索引缓冲
+
+	std::unique_ptr<Waves>											mWaves;
+	RenderItem*														mWavesRitem = nullptr;
 private:
 	XMFLOAT4X4	mWorld = MathHelper::Identity4x4();//世界矩阵
 	XMFLOAT4X4	mView = MathHelper::Identity4x4();//观察矩阵
@@ -196,6 +201,8 @@ void LandAndWavesApp::Update(const GameTimer& gt)
 	XMStoreFloat4x4(&passConstants.ViewProj, XMMatrixTranspose(viewProj));
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, passConstants);
+
+	UpdateWaves(gt);
 }
 
 void LandAndWavesApp::Draw(const GameTimer& gt)
@@ -555,21 +562,25 @@ void LandAndWavesApp::BuildGeometry()
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 	//创建缓冲区
-	mGeos = std::make_unique<MeshGeometry>();
-	mGeos->Name = "shapeGeo";
+	auto mGeo = std::make_unique<MeshGeometry>();
+	mGeo->Name = "landGeo";
 
-	mGeos->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), vertices.data(), vbByteSize, mGeos->VertexBufferUploader);
+	mGeo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+		mCommandList.Get(), vertices.data(), vbByteSize, mGeo->VertexBufferUploader);
 
-	mGeos->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), indices.data(), ibByteSize, mGeos->IndexBufferUploader);
+	mGeo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+		mCommandList.Get(), indices.data(), ibByteSize, mGeo->IndexBufferUploader);
 
-	mGeos->VertexByteStride = sizeof(Vertex);
-	mGeos->VertexBufferByteSize = vbByteSize;
-	mGeos->IndexFormat = DXGI_FORMAT_R16_UINT;
-	mGeos->IndexBufferByteSize = ibByteSize;
+	mGeo->VertexByteStride = sizeof(Vertex);
+	mGeo->VertexBufferByteSize = vbByteSize;
+	mGeo->IndexFormat = DXGI_FORMAT_R16_UINT;
+	mGeo->IndexBufferByteSize = ibByteSize;
 
-	mGeos->DrawArgs["grid"] = gridSubmesh;
+	mGeo->DrawArgs["grid"] = gridSubmesh;
+
+	mGeometries["landGeo"] = std::move(mGeo);
+
+	BuildWavesGeometryBuffers();
 }
 
 void LandAndWavesApp::BuildPSO_SOLID()
@@ -636,13 +647,29 @@ void LandAndWavesApp::BuildPSO_WIREFRAME()
 
 void LandAndWavesApp::BuildRenderItems()
 {
+	auto wavesRitem = std::make_unique<RenderItem>();
+	wavesRitem->world = MathHelper::Identity4x4();
+	wavesRitem->objCBIndex = 0;
+	wavesRitem->geo = mGeometries["waterGeo"].get();
+	wavesRitem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	wavesRitem->IndexCount = wavesRitem->geo->DrawArgs["grid"].IndexCount;
+	wavesRitem->StartIndexLocation = wavesRitem->geo->DrawArgs["grid"].StartIndexLocation;
+	wavesRitem->BaseVertexLocation = wavesRitem->geo->DrawArgs["grid"].BaseVertexLocation;
+
+	mWavesRitem = wavesRitem.get();
+
+
 	auto gridRitem = std::make_unique<RenderItem>();
 	gridRitem->world = MathHelper::Identity4x4();
-	gridRitem->objCBIndex = 0;//BOX常量数据（world矩阵）在objConstantBuffer索引1上
-	gridRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	gridRitem->IndexCount = mGeos->DrawArgs["grid"].IndexCount;
-	gridRitem->BaseVertexLocation = mGeos->DrawArgs["grid"].BaseVertexLocation;
-	gridRitem->StartIndexLocation = mGeos->DrawArgs["grid"].StartIndexLocation;
+	gridRitem->objCBIndex = 1;
+	gridRitem->geo = mGeometries["landGeo"].get();
+	gridRitem->primitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	gridRitem->IndexCount = gridRitem->geo->DrawArgs["grid"].IndexCount;
+	gridRitem->StartIndexLocation = gridRitem->geo->DrawArgs["grid"].StartIndexLocation;
+	gridRitem->BaseVertexLocation = gridRitem->geo->DrawArgs["grid"].BaseVertexLocation;
+
+
+	mAllRitems.push_back(std::move(wavesRitem));
 	mAllRitems.push_back(std::move(gridRitem));
 
 	for (auto& e : mAllRitems)
@@ -657,8 +684,8 @@ void LandAndWavesApp::DrawRenderItems()
 	{
 		auto ritem = mOpaqueRitems[i];
 
-		mCommandList->IASetVertexBuffers(0, 1, &mGeos->VertexBufferView());
-		mCommandList->IASetIndexBuffer(&mGeos->IndexBufferView());
+		mCommandList->IASetVertexBuffers(0, 1, &ritem->geo->VertexBufferView());
+		mCommandList->IASetIndexBuffer(&ritem->geo->IndexBufferView());
 		mCommandList->IASetPrimitiveTopology(ritem->primitiveType);
 
 		//设置根描述符,将根描述符与资源绑定
@@ -682,12 +709,111 @@ void LandAndWavesApp::BuildFrameResources()
 {
 	for (int i = 0; i < gNumFrameResources; ++i)
 	{
-		mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-			1, (UINT)mAllRitems.size()));
+		mFrameResources.push_back(std::make_unique<FrameResource>(
+			md3dDevice.Get(),
+			1, 
+			(UINT)mAllRitems.size(),
+			mWaves->VertexCount()
+		));
 	}
 }
 
 float LandAndWavesApp::GetHillsHeight(float x, float z)
 {
 	return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
+}
+
+void LandAndWavesApp::BuildWavesGeometryBuffers()
+{
+	mWaves = std::make_unique<Waves>(128, 128, 1.0f, 0.03f, 4.0f, 0.2f);
+
+	//初始化索引列表（每个三角形3个索引）
+	std::vector<std::uint16_t> indices(3 * mWaves->TriangleCount());
+	assert(mWaves->VertexCount() < 0x0000ffff);//顶点索引数大于65536则中止程序
+
+	//填充索引列表
+	int m = mWaves->RowCount();
+	int n = mWaves->ColumnCount();
+	int k = 0;
+	for (int i = 0; i < m - 1; i++)
+	{
+		for (int j = 0; j < n - 1; j++)
+		{
+			indices[k] = i * n + j;
+			indices[k + 1] = i * n + j + 1;
+			indices[k + 2] = (i + 1) * n + j;
+
+			indices[k + 3] = (i + 1) * n + j;
+			indices[k + 4] = i * n + j + 1;
+			indices[k + 5] = (i + 1) * n + j + 1;
+
+			k += 6;
+		}
+	}
+	//计算顶点和索引缓存大小
+	UINT vbByteSize = mWaves->VertexCount() * sizeof(Vertex);
+	UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
+
+	auto geo = std::make_unique<MeshGeometry>();
+	geo->Name = "waterGeo";
+
+	geo->VertexBufferGPU = nullptr;
+	//创建索引的CPU系统内存
+	
+	//将索引数据通过上传堆传至默认堆
+	geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(
+		md3dDevice.Get(),
+		mCommandList.Get(),
+		indices.data(),
+		ibByteSize,
+		geo->IndexBufferUploader);
+
+	//赋值MeshGeomety中相关属性
+	geo->VertexBufferByteSize = vbByteSize;
+	geo->VertexByteStride = sizeof(Vertex);
+	geo->IndexFormat = DXGI_FORMAT_R16_UINT;
+	geo->IndexBufferByteSize = ibByteSize;
+
+	SubmeshGeometry LakeSubmesh;
+	LakeSubmesh.BaseVertexLocation = 0;
+	LakeSubmesh.StartIndexLocation = 0;
+	LakeSubmesh.IndexCount = (UINT)indices.size();
+
+	//使用grid几何体
+	geo->DrawArgs["grid"] = LakeSubmesh;
+	//湖泊的MeshGeometry
+	mGeometries["waterGeo"] = std::move(geo);
+}
+
+void LandAndWavesApp::UpdateWaves(const GameTimer& gt)
+{
+	static float t_base = 0.0f;
+	if ((gt.TotalTime() - t_base) >= 0.25f)
+	{
+		t_base += 0.25f;	//0.25秒生成一个波浪
+		//随机生成横坐标
+		int i = MathHelper::Rand(4, mWaves->RowCount() - 5);
+		//随机生成纵坐标
+		int j = MathHelper::Rand(4, mWaves->ColumnCount() - 5);
+		//随机生成波的半径
+		float r = MathHelper::RandF(0.2f, 0.5f);//float用RandF函数
+		//使用波动方程函数生成波纹
+		mWaves->Disturb(i, j, r);
+	}
+
+	//每帧更新波浪模拟（即更新顶点坐标）
+	mWaves->Update(gt.DeltaTime());
+
+	//将更新的顶点坐标存入GPU上传堆中
+	auto currWavesVB = mCurrFrameResource->WavesVB.get();
+	for (int i = 0; i < mWaves->VertexCount(); i++)
+	{
+		Vertex v;
+		v.Pos = mWaves->Position(i);
+		v.Color = XMFLOAT4(DirectX::Colors::Blue);
+
+		currWavesVB->CopyData(i, v);
+	}
+	//赋值湖泊的GPU上的顶点缓存
+	mWavesRitem->geo->VertexBufferGPU = currWavesVB->Resource();
 }

@@ -147,6 +147,7 @@
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="UploadBuffer.h" />
+    <ClInclude Include="Waves.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BoxApp.cpp" />
@@ -159,6 +160,7 @@
     <ClCompile Include="LandAndWavesApp.cpp" />
     <ClCompile Include="MathHelper.cpp" />
     <ClCompile Include="ShapesApp.cpp" />
+    <ClCompile Include="Waves.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

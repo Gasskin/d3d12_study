@@ -42,6 +42,9 @@
     <ClInclude Include="FrameResource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Waves.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3dUtil.cpp">
@@ -73,6 +76,9 @@
     </ClCompile>
     <ClCompile Include="LandAndWavesApp.cpp">
       <Filter>源文件\example</Filter>
+    </ClCompile>
+    <ClCompile Include="Waves.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
