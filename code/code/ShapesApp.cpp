@@ -63,7 +63,9 @@ private:
 	void BuildRootSignature();//创建根签名
 	void BuildShadersAndInputLayout();//创建顶点输入布局
 	void BuildGeometry();//构建几何体（顶点与索引）
-	void BuildPSO();//创建流水线对象
+
+	void BuildPSO_SOLID();//创建流水线对象
+	void BuildPSO_WIREFRAME();//创建流水线对象
 
 	void BuildRenderItems();//渲染项
 	void DrawRenderItems();
@@ -87,7 +89,8 @@ private:
 
 	std::unique_ptr<MeshGeometry>					mGeos = nullptr;//盒子的顶点与索引缓冲
 
-	ComPtr<ID3D12PipelineState>						mPSO = nullptr;//流水线对象
+	ComPtr<ID3D12PipelineState>						mPSO_SOLID = nullptr;//流水线对象,实体
+	ComPtr<ID3D12PipelineState>						mPSO_WIREFRAME = nullptr;//流水线对象,线框
 
 	std::vector<std::unique_ptr<RenderItem>>		mAllRitems;//暂时不能理解为什么需要两个vector来创建渲染项
 	std::vector<RenderItem*>						mOpaqueRitems;
@@ -103,6 +106,8 @@ private:
 	float		mTheta = 1.5f * XM_PI; //1.5pai
 	float		mPhi = XM_PIDIV4;//四分之pai
 	float		mRadius = 5.0f;//弧度
+private:
+	bool mEnableWireframe = false;
 private:
 	POINT	mLastMousePos;
 };
@@ -133,7 +138,8 @@ bool ShapesApp::Initialize()
 	BuildConstantBuffers();
 	BuildRootSignature();
 	BuildShadersAndInputLayout();
-	BuildPSO();
+	BuildPSO_SOLID();
+	BuildPSO_WIREFRAME();
 	//关闭命令列表
 	ThrowIfFailed(mCommandList->Close());
 	//执行命令
@@ -141,7 +147,6 @@ bool ShapesApp::Initialize()
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 	//围栏
 	FlushCommandQueue();
-
 	return true;
 }
 
@@ -197,7 +202,14 @@ void ShapesApp::Draw(const GameTimer& gt)
 
 	ThrowIfFailed(cmdListAlloc->Reset());
 
-	ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSO.Get()));
+	if (mEnableWireframe)
+	{
+		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSO_WIREFRAME.Get()));
+	}
+	else
+	{
+		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSO_SOLID.Get()));
+	}
 	
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
@@ -400,6 +412,14 @@ LRESULT ShapesApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
 			PostQuitMessage(0);
 		}
+		else if (wParam == VK_F1)
+		{
+			mEnableWireframe = true;
+		}
+		else if (wParam == VK_F2)
+		{
+			mEnableWireframe = false;
+		}
 		return 0;
 	}
 	return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -416,7 +436,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 		ShapesApp theApp(hInstance);
 		if (!theApp.Initialize())
 			return 0;
-
 		return theApp.Run();
 	}
 	catch (DxException& e)
@@ -661,7 +680,38 @@ void ShapesApp::BuildGeometry()
 	mGeos->DrawArgs["cylinder"] = cylinderSubmesh;
 }
 
-void ShapesApp::BuildPSO()
+void ShapesApp::BuildPSO_SOLID()
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	psoDesc.InputLayout = { mInputLayout.data(), (UINT)mInputLayout.size() };
+	psoDesc.pRootSignature = mRootSignature.Get();
+	psoDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(mvsByteCode->GetBufferPointer()),
+		mvsByteCode->GetBufferSize()
+	};
+	psoDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(mpsByteCode->GetBufferPointer()),
+		mpsByteCode->GetBufferSize()
+	};
+	psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+	psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = mBackBufferFormat;
+	psoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
+	psoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
+	psoDesc.DSVFormat = mDepthStencilFormat;
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO_SOLID)));
+}
+
+void ShapesApp::BuildPSO_WIREFRAME()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -689,7 +739,7 @@ void ShapesApp::BuildPSO()
 	psoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	psoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	psoDesc.DSVFormat = mDepthStencilFormat;
-	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO)));
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&mPSO_WIREFRAME)));
 }
 
 void ShapesApp::BuildRenderItems()
