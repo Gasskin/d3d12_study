@@ -37,6 +37,8 @@ struct RenderItem
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	UINT BaseVertexLocation = 0;
+
+	MeshGeometry* geo = nullptr;
 };
 
 //====================================================
@@ -71,6 +73,8 @@ private:
 	void DrawRenderItems();
 
 	void BuildFrameResources();//帧资源
+
+	void BuildSkullGeometry();//读取模型数据
 private:
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);
@@ -87,7 +91,7 @@ private:
 	ComPtr<ID3DBlob>								mpsByteCode = nullptr;//像素着色器
 	std::vector<D3D12_INPUT_ELEMENT_DESC>			mInputLayout;//输入布局
 
-	std::unique_ptr<MeshGeometry>					mGeos = nullptr;//盒子的顶点与索引缓冲
+	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> geometries;
 
 	ComPtr<ID3D12PipelineState>						mPSO_SOLID = nullptr;//流水线对象,实体
 	ComPtr<ID3D12PipelineState>						mPSO_WIREFRAME = nullptr;//流水线对象,线框
@@ -629,7 +633,7 @@ void ShapesApp::BuildGeometry()
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
 
 	//创建缓冲区
-	mGeos = std::make_unique<MeshGeometry>();
+	auto mGeos = std::make_unique<MeshGeometry>();
 	mGeos->Name = "shapeGeo";
 
 	mGeos->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
@@ -647,6 +651,10 @@ void ShapesApp::BuildGeometry()
 	mGeos->DrawArgs["grid"] = gridSubmesh;
 	mGeos->DrawArgs["sphere"] = sphereSubmesh;
 	mGeos->DrawArgs["cylinder"] = cylinderSubmesh;
+
+	geometries["shapeGeo"] = std::move(mGeos);
+
+	BuildSkullGeometry();
 }
 
 void ShapesApp::BuildPSO_SOLID()
@@ -716,22 +724,34 @@ void ShapesApp::BuildRenderItems()
 	auto boxRitem = std::make_unique<RenderItem>();
 	XMStoreFloat4x4(&(boxRitem->world), XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f));
 	boxRitem->objCBIndex = 0;//BOX常量数据（world矩阵）在objConstantBuffer索引0上
+	boxRitem->geo = geometries["shapeGeo"].get();
 	boxRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	boxRitem->IndexCount = mGeos->DrawArgs["box"].IndexCount;
-	boxRitem->BaseVertexLocation = mGeos->DrawArgs["box"].BaseVertexLocation;
-	boxRitem->StartIndexLocation = mGeos->DrawArgs["box"].StartIndexLocation;
+	boxRitem->IndexCount = boxRitem->geo->DrawArgs["box"].IndexCount;
+	boxRitem->BaseVertexLocation = boxRitem->geo->DrawArgs["box"].BaseVertexLocation;
+	boxRitem->StartIndexLocation = boxRitem->geo->DrawArgs["box"].StartIndexLocation;
 	mAllRitems.push_back(std::move(boxRitem));
 
 	auto gridRitem = std::make_unique<RenderItem>();
 	gridRitem->world = MathHelper::Identity4x4();
 	gridRitem->objCBIndex = 1;//BOX常量数据（world矩阵）在objConstantBuffer索引1上
+	gridRitem->geo = geometries["shapeGeo"].get();
 	gridRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	gridRitem->IndexCount = mGeos->DrawArgs["grid"].IndexCount;
-	gridRitem->BaseVertexLocation = mGeos->DrawArgs["grid"].BaseVertexLocation;
-	gridRitem->StartIndexLocation = mGeos->DrawArgs["grid"].StartIndexLocation;
+	gridRitem->IndexCount = gridRitem->geo->DrawArgs["grid"].IndexCount;
+	gridRitem->BaseVertexLocation = gridRitem->geo->DrawArgs["grid"].BaseVertexLocation;
+	gridRitem->StartIndexLocation = gridRitem->geo->DrawArgs["grid"].StartIndexLocation;
 	mAllRitems.push_back(std::move(gridRitem));
 
-	UINT fllowObjCBIndex = 2;//接下去的几何体常量数据在CB中的索引从2开始
+	auto skullRitem = std::make_unique<RenderItem>();
+	XMStoreFloat4x4(&skullRitem->world, XMMatrixScaling(0.5f, 0.5f, 0.5f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f));
+	skullRitem->objCBIndex = 2;//skull常量数据（world矩阵）在objConstantBuffer索引1上
+	skullRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	skullRitem->geo = geometries["skullGeo"].get();
+	skullRitem->IndexCount = skullRitem->geo->DrawArgs["skull"].IndexCount;
+	skullRitem->BaseVertexLocation = skullRitem->geo->DrawArgs["skull"].BaseVertexLocation;
+	skullRitem->StartIndexLocation = skullRitem->geo->DrawArgs["skull"].StartIndexLocation;
+	mAllRitems.push_back(std::move(skullRitem));
+
+	UINT fllowObjCBIndex = 3;//接下去的几何体常量数据在CB中的索引从2开始
 	//将圆柱和圆的实例模型存入渲染项中
 	for (int i = 0; i < 5; i++)
 	{
@@ -748,31 +768,35 @@ void ShapesApp::BuildRenderItems()
 		XMStoreFloat4x4(&(leftCylinderRitem->world), leftCylWorld);
 		//此处的索引随着循环不断加1（注意：这里是先赋值再++）
 		leftCylinderRitem->objCBIndex = fllowObjCBIndex++;
+		leftCylinderRitem->geo = geometries["shapeGeo"].get();
 		leftCylinderRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		leftCylinderRitem->IndexCount = mGeos->DrawArgs["cylinder"].IndexCount;
-		leftCylinderRitem->BaseVertexLocation = mGeos->DrawArgs["cylinder"].BaseVertexLocation;
-		leftCylinderRitem->StartIndexLocation = mGeos->DrawArgs["cylinder"].StartIndexLocation;
+		leftCylinderRitem->IndexCount = leftCylinderRitem->geo->DrawArgs["cylinder"].IndexCount;
+		leftCylinderRitem->BaseVertexLocation = leftCylinderRitem->geo->DrawArgs["cylinder"].BaseVertexLocation;
+		leftCylinderRitem->StartIndexLocation = leftCylinderRitem->geo->DrawArgs["cylinder"].StartIndexLocation;
 		//右边5个圆柱
 		XMStoreFloat4x4(&(rightCylinderRitem->world), rightCylWorld);
 		rightCylinderRitem->objCBIndex = fllowObjCBIndex++;
+		rightCylinderRitem->geo = geometries["shapeGeo"].get();
 		rightCylinderRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		rightCylinderRitem->IndexCount = mGeos->DrawArgs["cylinder"].IndexCount;
-		rightCylinderRitem->BaseVertexLocation = mGeos->DrawArgs["cylinder"].BaseVertexLocation;
-		rightCylinderRitem->StartIndexLocation = mGeos->DrawArgs["cylinder"].StartIndexLocation;
+		rightCylinderRitem->IndexCount = rightCylinderRitem->geo->DrawArgs["cylinder"].IndexCount;
+		rightCylinderRitem->BaseVertexLocation = rightCylinderRitem->geo->DrawArgs["cylinder"].BaseVertexLocation;
+		rightCylinderRitem->StartIndexLocation = rightCylinderRitem->geo->DrawArgs["cylinder"].StartIndexLocation;
 		//左边5个球
 		XMStoreFloat4x4(&(leftSphereRitem->world), leftSphereWorld);
 		leftSphereRitem->objCBIndex = fllowObjCBIndex++;
+		leftSphereRitem->geo = geometries["shapeGeo"].get();
 		leftSphereRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		leftSphereRitem->IndexCount = mGeos->DrawArgs["sphere"].IndexCount;
-		leftSphereRitem->BaseVertexLocation = mGeos->DrawArgs["sphere"].BaseVertexLocation;
-		leftSphereRitem->StartIndexLocation = mGeos->DrawArgs["sphere"].StartIndexLocation;
+		leftSphereRitem->IndexCount = leftSphereRitem->geo->DrawArgs["sphere"].IndexCount;
+		leftSphereRitem->BaseVertexLocation = leftSphereRitem->geo->DrawArgs["sphere"].BaseVertexLocation;
+		leftSphereRitem->StartIndexLocation = leftSphereRitem->geo->DrawArgs["sphere"].StartIndexLocation;
 		//右边5个球
 		XMStoreFloat4x4(&(rightSphereRitem->world), rightSphereWorld);
 		rightSphereRitem->objCBIndex = fllowObjCBIndex++;
+		rightSphereRitem->geo = geometries["shapeGeo"].get();
 		rightSphereRitem->primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-		rightSphereRitem->IndexCount = mGeos->DrawArgs["sphere"].IndexCount;
-		rightSphereRitem->BaseVertexLocation = mGeos->DrawArgs["sphere"].BaseVertexLocation;
-		rightSphereRitem->StartIndexLocation = mGeos->DrawArgs["sphere"].StartIndexLocation;
+		rightSphereRitem->IndexCount = rightSphereRitem->geo->DrawArgs["sphere"].IndexCount;
+		rightSphereRitem->BaseVertexLocation = rightSphereRitem->geo->DrawArgs["sphere"].BaseVertexLocation;
+		rightSphereRitem->StartIndexLocation = rightSphereRitem->geo->DrawArgs["sphere"].StartIndexLocation;
 
 		mAllRitems.push_back(std::move(leftCylinderRitem));
 		mAllRitems.push_back(std::move(rightCylinderRitem));
@@ -790,8 +814,8 @@ void ShapesApp::DrawRenderItems()
 	{
 		auto ritem = mOpaqueRitems[i];
 
-		mCommandList->IASetVertexBuffers(0, 1, &mGeos->VertexBufferView());
-		mCommandList->IASetIndexBuffer(&mGeos->IndexBufferView());
+		mCommandList->IASetVertexBuffers(0, 1, &ritem->geo->VertexBufferView());
+		mCommandList->IASetIndexBuffer(&ritem->geo->IndexBufferView());
 		mCommandList->IASetPrimitiveTopology(ritem->primitiveType);
 
 		XMMATRIX world = XMLoadFloat4x4(&ritem->world);
@@ -821,4 +845,78 @@ void ShapesApp::BuildFrameResources()
 		mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
 			1, (UINT)mAllRitems.size()));
 	}
+}
+
+void ShapesApp::BuildSkullGeometry()
+{
+	std::ifstream fin("Models\\skull.txt");//读取骷髅网格文件
+
+	if (!fin)//如果读取失败则弹框警告
+	{
+		MessageBox(0, L"Models/skull.txt not found", 0, 0);
+		return;
+	}
+
+	UINT vertexCount = 0;
+	UINT triangleCount = 0;
+	std::string ignore;
+
+	fin >> ignore >> vertexCount;//读取vertexCount并赋值
+	fin >> ignore >> triangleCount;//读取triangleCount并赋值
+	fin >> ignore >> ignore >> ignore >> ignore;//整行不读
+
+	std::vector<Vertex> vertices(vertexCount);//初始化顶点列表
+	//顶点列表赋值
+	for (UINT i = 0; i < vertexCount; i++)
+	{
+		fin >> vertices[i].Pos.x >> vertices[i].Pos.y >> vertices[i].Pos.z;//读取顶点坐标
+		fin >> ignore >> ignore >> ignore;//normal不读取
+		vertices[i].Color = XMFLOAT4(DirectX::Colors::CadetBlue);//设置顶点色
+	}
+
+	fin >> ignore;
+	fin >> ignore;
+	fin >> ignore;
+
+	std::vector<std::int32_t> indices(triangleCount * 3);//初始化索引列表
+	//索引列表赋值
+	for (UINT i = 0; i < triangleCount; i++)
+	{
+		fin >> indices[i * 3 + 0] >> indices[i * 3 + 1] >> indices[i * 3 + 2];
+	}
+
+	fin.close();//关闭输入流
+
+	const UINT vbByteSize = vertices.size() * sizeof(Vertex);//顶点缓存大小
+	const UINT ibByteSize = indices.size() * sizeof(std::int32_t);//索引缓存大小
+
+	auto geo = std::make_unique<MeshGeometry>();
+	geo->Name = "skullGeo";
+
+	//将顶点和索引数据复制到CPU系统内存上
+	/*ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->vertexBufferCpu));
+	CopyMemory(geo->vertexBufferCpu->GetBufferPointer(), vertices.data(), vbByteSize);
+	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->indexBufferCpu));
+	CopyMemory(geo->indexBufferCpu->GetBufferPointer(), indices.data(), ibByteSize);*/
+
+	//将顶点和索引数据从CPU内存复制到GPU缓存上
+	geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+		mCommandList.Get(), vertices.data(), vbByteSize, geo->VertexBufferUploader);
+	geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+		mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
+
+	geo->VertexByteStride = sizeof(Vertex);
+	geo->VertexBufferByteSize = vbByteSize;
+	geo->IndexBufferByteSize = ibByteSize;
+	geo->IndexFormat = DXGI_FORMAT_R32_UINT;
+
+	//绘制三参数
+	SubmeshGeometry skullSubmesh;
+	skullSubmesh.BaseVertexLocation = 0;
+	skullSubmesh.StartIndexLocation = 0;
+	skullSubmesh.IndexCount = (UINT)indices.size();
+
+	geo->DrawArgs["skull"] = skullSubmesh;
+
+	geometries["skullGeo"] = std::move(geo);
 }
