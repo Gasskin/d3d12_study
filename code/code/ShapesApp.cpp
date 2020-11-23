@@ -231,7 +231,7 @@ void ShapesApp::Draw(const GameTimer& gt)
 	//设置根签名
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
-	int passCbvIndex = mAllRitems.size()*gNumFrameResources + mCurrFrameResourceIndex;
+	int passCbvIndex = mCurrFrameResourceIndex;
 	auto handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
 	handle.Offset(passCbvIndex, mCbvSrvUavDescriptorSize);
 	mCommandList->SetGraphicsRootDescriptorTable(
@@ -452,10 +452,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
 */
 void ShapesApp::BuildDescriptorHeaps()
 {
-	UINT objectCount = (UINT)mOpaqueRitems.size();
 	//描述 描述符堆
 	D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc;
-	cbvHeapDesc.NumDescriptors = (objectCount + 1) * gNumFrameResources;//每一个堆里有n个W矩阵+1个VP矩阵，3个帧资源，3个堆
+	cbvHeapDesc.NumDescriptors = gNumFrameResources;//W矩阵储存在根常量中，不需要创建视图了，所以堆里只有3个vp矩阵
 	cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	cbvHeapDesc.NodeMask = 0;
@@ -470,34 +469,6 @@ void ShapesApp::BuildDescriptorHeaps()
 
 void ShapesApp::BuildConstantBuffers()
 {
-	//创建M矩阵常量缓冲区
-	UINT objectCount = (UINT)mOpaqueRitems.size();
-	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
-
-	for (int frameIndex = 0; frameIndex < gNumFrameResources; ++frameIndex)
-	{
-		auto objectCB = mFrameResources[frameIndex]->ObjectCB->Resource();
-		for (UINT i = 0; i < objectCount; ++i)
-		{
-			D3D12_GPU_VIRTUAL_ADDRESS cbAddress = objectCB->GetGPUVirtualAddress();
-
-			//视图在常量缓冲区的位置，第几个物体就偏移几个常量大小
-			cbAddress += i * objCBByteSize;
-
-			//视图在描述符堆的位置，注意现在有6个常量缓冲区（3个obj3个pass），但只有1个描述符堆
-			int heapIndex = frameIndex * objectCount + i;
-			auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
-			handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);
-
-			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-			cbvDesc.BufferLocation = cbAddress;
-			cbvDesc.SizeInBytes = objCBByteSize;
-
-			md3dDevice->CreateConstantBufferView(&cbvDesc, handle);
-		}
-	}
-	
-
 	//创建VP矩阵常量缓冲区
 
 	UINT passCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
@@ -508,7 +479,7 @@ void ShapesApp::BuildConstantBuffers()
 		D3D12_GPU_VIRTUAL_ADDRESS cbAddress = passCB->GetGPUVirtualAddress();
 
 		//描述符堆中最后3个位置储存3个pass
-		int heapIndex = objectCount * gNumFrameResources + frameIndex;
+		int heapIndex = frameIndex;
 		auto handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(mCbvHeap->GetCPUDescriptorHandleForHeapStart());
 		handle.Offset(heapIndex, mCbvSrvUavDescriptorSize);
 
@@ -524,18 +495,16 @@ void ShapesApp::BuildRootSignature()
 {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
 
-	//创建由单个CBV所组成的描述符表
-	CD3DX12_DESCRIPTOR_RANGE cbvTable0;
-	cbvTable0.Init(
-		D3D12_DESCRIPTOR_RANGE_TYPE_CBV, //描述符类型
-		1, //描述符数量
-		0);//描述符所绑定的寄存器槽号
 	CD3DX12_DESCRIPTOR_RANGE cbvTable1;
 	cbvTable1.Init(
 		D3D12_DESCRIPTOR_RANGE_TYPE_CBV, //描述符类型
 		1, //描述符数量
 		1);//描述符所绑定的寄存器槽号
-	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable0);
+
+	//创建16个32位根常量，为什么22个物体只需要16个根常量？
+	//其实这是误解...这里描述的是每一个物体中W矩阵的大小，因为W矩阵是4X4的，那自然是16个32位数据...
+	//多多思考，根签名到底是什么意思，他描述的每一个参数
+	slotRootParameter[0].InitAsConstants(16, 0);
 	slotRootParameter[1].InitAsDescriptorTable(1, &cbvTable1);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(2, //根参数数量修改为2
@@ -825,12 +794,16 @@ void ShapesApp::DrawRenderItems()
 		mCommandList->IASetIndexBuffer(&mGeos->IndexBufferView());
 		mCommandList->IASetPrimitiveTopology(ritem->primitiveType);
 
-		//设置根描述符表1
-		UINT objCbvIndex = mCurrFrameResourceIndex * (UINT)mOpaqueRitems.size() + ritem->objCBIndex;;
-		auto handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(mCbvHeap->GetGPUDescriptorHandleForHeapStart());
-		handle.Offset(objCbvIndex, mCbvSrvUavDescriptorSize);
-		mCommandList->SetGraphicsRootDescriptorTable(0, //根参数的起始索引
-			handle);
+		XMMATRIX world = XMLoadFloat4x4(&ritem->world);
+
+		ObjectConstants objConstants;
+		XMStoreFloat4x4(&objConstants.World, XMMatrixTranspose(world));
+
+		mCommandList->SetGraphicsRoot32BitConstants(
+			0, //根参数的索引
+			16, &objConstants, 0);
+
+		ritem->NumFramesDirty--;
 
 		//绘制顶点（通过索引缓冲区绘制）
 		mCommandList->DrawIndexedInstanced(ritem->IndexCount, //每个实例要绘制的索引数
