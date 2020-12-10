@@ -94,7 +94,7 @@ private:
 	ComPtr<ID3D12PipelineState>										mPSO_SOLID = nullptr;//流水线对象,实体
 	ComPtr<ID3D12PipelineState>										mPSO_WIREFRAME = nullptr;//流水线对象,线框
 
-	std::vector<std::unique_ptr<RenderItem>>						mAllRitems;//暂时不能理解为什么需要两个vector来创建渲染项
+	std::vector<std::unique_ptr<RenderItem>>						mAllRitems;
 	std::vector<RenderItem*>										mOpaqueRitems;
 
 	std::vector<std::unique_ptr<FrameResource>>						mFrameResources;//帧资源
@@ -527,7 +527,7 @@ void LandAndWavesApp::BuildGeometry()
 	//创建顶点缓存
 	size_t VertexCount = grid.Vertices.size();
 	std::vector<Vertex> vertices(VertexCount);	//给定顶点数组大小
-	for (int i = 0; i < grid.Vertices.size(); i++)
+	for (size_t i = 0; i < grid.Vertices.size(); i++)
 	{
 		vertices[i].Pos = grid.Vertices[i].Position;
 		vertices[i].Pos.y = GetHillsHeight(vertices[i].Pos.x, vertices[i].Pos.z);
